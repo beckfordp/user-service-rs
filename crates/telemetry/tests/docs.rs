@@ -337,7 +337,7 @@ async fn the_spec_is_served_as_yaml() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(
         header(&response, "content-type").as_deref(),
-        Some("application/yaml; charset=UTF-8")
+        Some("application/yaml")
     );
     assert_eq!(body(response).await, b"openapi: '3.1.0'\n");
 }

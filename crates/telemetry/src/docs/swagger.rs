@@ -169,11 +169,9 @@ pub fn router(yaml: String) -> Router {
         .route(
             "/docs/docs.yaml",
             get(move || async move {
-                (
-                    [(header::CONTENT_TYPE, "application/yaml; charset=UTF-8")],
-                    yaml,
-                )
-                    .into_response()
+                // No charset: what the Scala service sends (RUST-5.0 run), not
+                // tapir's yamlEndpoint as read from its source.
+                ([(header::CONTENT_TYPE, "application/yaml")], yaml).into_response()
             })
             .head(method_not_allowed),
         )
