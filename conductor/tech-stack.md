@@ -133,6 +133,11 @@ gluon `bin/sandbox-setup` in the same change.
   `raw.githubusercontent.com` and `rustsec.org` are unreachable there.
   `scripts/ci.sh` runs it when it is installed and the database reachable
   (GitHub Actions), and otherwise prints an explicit `SKIP` line saying why
+  *(2026-11-10, cargo-audit_20261110)* `.cargo/audit.toml` ignores
+  RUSTSEC-2023-0071 (`rsa`) and RUSTSEC-2026-0459 (`libsqlite3-sys`): in
+  `Cargo.lock` only, via sqlx 0.8's macros listing the MySQL/SQLite drivers;
+  `scripts/verify-cargo-audit.sh` checks they stay unbuilt. YAML in tests:
+  `serde_norway` (the maintained `serde_yaml` fork).
 
 ## Packaging / local deploy
 - *(Laptop, Rust Spike 5)* Multi-stage Dockerfile → `user-service-rs:latest`
