@@ -1,0 +1,5 @@
+Task: scripts/verify-cargo-audit.sh, written first (track cargo-audit_20261110)
+Files: scripts/verify-cargo-audit.sh (new); conductor/tracks.md, plan.md ([~] marks)
+Checks: CI (+ audit not SKIPped when DB reachable); cargo tree -i rsa/libsqlite3-sys no path; Cargo.lock lacks serde_yaml/unsafe-libyaml; cargo audit --deny warnings (SKIP when DB unreachable).
+Red run --skip-ci: 2 ok, 3 FAIL (serde_yaml + unsafe-libyaml in lock; audit RUSTSEC-2026-0459, 2023-0071, 2024-0449).
+Why: spec requires the check before the fix.
