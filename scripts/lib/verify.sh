@@ -9,7 +9,7 @@ verify_as_owner() {
   local self="$1"
   shift
   local owner
-  owner="$(stat -c %U "$PWD")"
+  owner="$(stat -c %U "$PWD" 2> /dev/null || stat -f %Su "$PWD")"
   [ "$(id -un)" = "$owner" ] && return 0
   if [ "$(id -u)" = 0 ] && command -v runuser > /dev/null; then
     echo "== re-running as $owner (the repo's owner) =="
