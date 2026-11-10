@@ -1,0 +1,8 @@
+{
+  "track_id": "probe-consume_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T22:59:00Z",
+  "updated_at": "2026-11-09T23:31:00Z",
+  "description": "RUST-6.2: Probe — consume, decode, skip, trace join, lag and event age"
+}

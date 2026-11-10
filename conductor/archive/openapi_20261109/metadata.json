@@ -1,0 +1,8 @@
+{
+  "track_id": "openapi_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T21:49:00Z",
+  "updated_at": "2026-11-09T21:59:00Z",
+  "description": "RUST-4.1: OpenAPI at /docs/docs.yaml, Swagger UI at /docs"
+}

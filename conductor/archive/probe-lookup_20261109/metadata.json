@@ -1,0 +1,8 @@
+{
+  "track_id": "probe-lookup_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T23:32:00Z",
+  "updated_at": "2026-11-09T23:52:00Z",
+  "description": "RUST-6.3: Probe — the resilience-wrapped lookup"
+}

@@ -1,0 +1,8 @@
+{
+  "track_id": "readiness_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T20:50:00Z",
+  "updated_at": "2026-11-09T21:10:00Z",
+  "description": "RUST-2.4: Baseline migration, pool, /health/ready"
+}

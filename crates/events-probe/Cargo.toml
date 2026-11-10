@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "events-probe"
+description = "A throwaway Kafka consumer, run only inside the contract harness, to measure the consumer-side cost (gluon ADR 0028 decision 8)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace", "testing"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[dependencies]
+axum = "0.8"
+opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace"] }
+rdkafka = { version = "0.39", default-features = false, features = ["libz", "tokio"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+telemetry = { version = "0.1.0", path = "../telemetry" }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time"] }

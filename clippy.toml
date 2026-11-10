@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Tests may panic: that is how they fail (conductor/code_styleguides/rust.md rule 2).
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+# Proper nouns the docs use often (OpenTelemetry's short name).
+doc-valid-idents = ["OTel", "OpenTelemetry", "OpenAPI", "AsyncAPI", "PostgreSQL", ".."]

@@ -1,0 +1,8 @@
+{
+  "track_id": "probe-dlq_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T23:52:00Z",
+  "updated_at": "2026-11-10T00:08:00Z",
+  "description": "RUST-6.4: Probe — dead-lettering and stream supervision"
+}

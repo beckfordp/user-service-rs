@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Pinned (RUST-2.2): the Rust the sandbox has; gluon bin/sandbox-setup installs
+# the same one, so a rebuilt sandbox builds exactly what CI built.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy", "llvm-tools-preview"]
+profile = "minimal"

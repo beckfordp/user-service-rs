@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: MIT
+# user-service-rs: a wire-compatible Rust port of user-service (gluon ADR 0028).
+[workspace]
+resolver = "3"
+members = ["crates/user-service", "crates/telemetry", "crates/events-probe"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+# Every member opts in with `[lints] workspace = true` (conductor/tech-stack.md).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# conductor/code_styleguides/rust.md rule 2: no panicking shortcuts outside tests
+# (clippy.toml allows them in tests).
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+# Optimise dependencies even in dev builds: PBKDF2 at 210000 rounds is far
+# too slow unoptimised, and the contract harness runs the dev build. Our own
+# crates stay debuggable.
+[profile.dev.package."*"]
+opt-level = 3
+[profile.dev.package.user-service]
+opt-level = 1

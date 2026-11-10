@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MIT
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rustup (preinstalled on the runner) installs the toolchain and
+      # components pinned in rust-toolchain.toml.
+      - name: Toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+
+      # Same cargo-llvm-cov as gluon bin/sandbox-setup; cargo-audit only runs
+      # here, where the RustSec advisory database is reachable.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.9.1,cargo-audit
+
+      - uses: Swatinem/rust-cache@v2
+
+      # The payload schema test (tests/events.rs) compares the generated
+      # UserRegistered schema with gluon's committed registry (ADR 0028
+      # decision 4); it only reads, never registers. Same checkout as the
+      # Scala user-service's CI.
+      - name: Check out gluon's schema registry export
+        uses: actions/checkout@v4
+        with:
+          repository: beckfordp/gluon
+          path: gluon
+          sparse-checkout: registry
+          sparse-checkout-cone-mode: false
+
+      # The same script the sandbox runs, so the two can't drift.
+      - name: CI checks
+        env:
+          GLUON_REGISTRY: ${{ github.workspace }}/gluon/registry
+        run: scripts/ci.sh

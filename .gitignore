@@ -1,0 +1,10 @@
+# Cargo build output
+/target/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Coverage data an instrumented binary writes when LLVM_PROFILE_FILE is unset
+*.profraw

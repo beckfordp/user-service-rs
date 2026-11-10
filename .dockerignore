@@ -1,0 +1,4 @@
+# Only sources reach the build context.
+target/
+.git/
+*.profraw

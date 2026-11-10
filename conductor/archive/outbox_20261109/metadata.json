@@ -1,0 +1,8 @@
+{
+  "track_id": "outbox_20261109",
+  "type": "feature",
+  "status": "completed",
+  "created_at": "2026-11-09T20:19:00Z",
+  "updated_at": "2026-11-09T20:30:00Z",
+  "description": "RUST-3.1: UserRegistered outbox row and envelope; CI payload schema check"
+}
