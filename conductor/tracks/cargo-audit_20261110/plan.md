@@ -9,3 +9,6 @@
   - [x] RUSTSEC-2023-0071, RUSTSEC-2026-0459, each with the lockfile-only reason; `cargo audit --deny warnings` green
 - [x] Task: `scripts/ci.sh` green on the laptop with cargo audit running (not SKIP); verify script `--skip-ci` PASS; failure path proven once on a broken copy — full run PASS (6 checks); broken copy (`sqlx-postgres`, `serde_norway` expected absent): exit 1, both named
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions 41d3aed
