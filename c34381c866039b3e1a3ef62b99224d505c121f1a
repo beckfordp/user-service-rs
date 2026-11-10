@@ -1,0 +1,4 @@
+Task: serde_yaml -> serde_norway (track cargo-audit_20261110)
+Files: crates/user-service/Cargo.toml (dev-dep serde_norway 0.9.42), crates/user-service/tests/docs.rs, Cargo.lock
+Result: cargo test --test docs 3 passed; fmt/clippy clean; Cargo.lock drops serde_yaml + unsafe-libyaml; RUSTSEC-2024-0449 gone, unsafe-libyaml-norway not flagged.
+Why: serde_yaml deprecated, pulled unmaintained unsafe-libyaml; serde_norway is the maintained fork, same API.
