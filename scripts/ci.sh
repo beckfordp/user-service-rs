@@ -50,5 +50,12 @@ if ! timeout 20 git ls-remote --exit-code "$advisory_db" HEAD > /dev/null 2>&1; 
 elif ! command -v cargo-audit > /dev/null 2>&1; then
   echo "SKIP cargo-audit: not installed (GitHub Actions installs it)"
 else
+  # .cargo/audit.toml's ignores hold only while these are lockfile-only
+  for crate in rsa libsqlite3-sys; do
+    if [ -n "$(cargo tree -i "$crate" -e all --target all --locked -q)" ]; then
+      echo "FAIL $crate is built: drop its .cargo/audit.toml ignore"
+      exit 1
+    fi
+  done
   cargo audit --deny warnings
 fi
