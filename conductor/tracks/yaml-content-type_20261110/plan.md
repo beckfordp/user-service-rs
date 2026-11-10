@@ -8,3 +8,6 @@
   - [x] CI; curl the header from a started service; full harness against Rust (all groups incl. probe); gluon-contract `scripts/ci.sh`
   - [x] Failure path proven once on a broken copy
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions eeba869
