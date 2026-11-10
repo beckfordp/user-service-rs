@@ -1,0 +1,4 @@
+Phase 1 verification (track yaml-content-type_20261110)
+Automated: scripts/ci.sh — fmt, clippy, registry baseline, tests (84.84% lines) green; cargo audit red (pre-existing: RUSTSEC-2026-0459, RUSTSEC-2023-0071 lockfile-only via sqlx drivers; RUSTSEC-2024-0449 unsafe-libyaml dev-only) — separate track.
+Manual: scripts/verify-yaml-content-type.sh --skip-ci → PASS, 132 checks (GET Content-Type application/yaml, HEAD 405, 129 contract checks, gluon-contract CI 161 passed).
+User confirmed: yes (2026-11-10).
