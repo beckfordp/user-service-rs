@@ -6,8 +6,6 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
-- [x] **Track: cargo audit green: lockfile-only sqlx driver advisories ignored with reason, serde_yaml replaced by serde_norway**
-  *Link: [./tracks/cargo-audit_20261110/](./tracks/cargo-audit_20261110/)*
 
 
 
