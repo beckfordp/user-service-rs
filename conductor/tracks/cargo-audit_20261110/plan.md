@@ -1,6 +1,6 @@
 # Plan — cargo audit green
 
-## Phase 1: Audit green
+## Phase 1: Audit green [checkpoint: edaa63a]
 - [x] Task: `scripts/verify-cargo-audit.sh`, written first `291b1e9`
   - [x] Red: CI; `cargo tree -i` no path to `rsa`/`libsqlite3-sys`; `serde_yaml`/`unsafe-libyaml` absent from `Cargo.lock`; `cargo audit --deny warnings` (SKIP when DB unreachable). Run: lockfile + audit checks FAIL for the stated reasons
 - [x] Task: `serde_yaml` → `serde_norway` `c34381c`
