@@ -5,6 +5,7 @@ name = "telemetry"
 description = "Cross-cutting behaviour every service needs: tracing, metrics, the log format and the error envelope; the seed of a Rust purerest equivalent (gluon ADR 0028 decision 4)."
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 

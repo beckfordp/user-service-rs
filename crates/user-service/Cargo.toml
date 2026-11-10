@@ -5,6 +5,7 @@ name = "user-service"
 description = "The user-service binary: the wire-compatible port of the Scala user-service (gluon ADR 0028)."
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 

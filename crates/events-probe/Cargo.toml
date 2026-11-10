@@ -5,6 +5,7 @@ name = "events-probe"
 description = "A throwaway Kafka consumer, run only inside the contract harness, to measure the consumer-side cost (gluon ADR 0028 decision 8)."
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
