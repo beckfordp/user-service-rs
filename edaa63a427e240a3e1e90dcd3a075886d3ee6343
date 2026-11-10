@@ -1,0 +1,4 @@
+Phase 1 'Audit green' verification (track cargo-audit_20261110)
+Automated: scripts/verify-cargo-audit.sh (CI incl. cargo audit not skipped, cargo tree -i rsa/libsqlite3-sys no path, Cargo.lock lacks serde_yaml/unsafe-libyaml, cargo audit --deny warnings) — PASS, 6 checks, exit 0.
+Failure path: broken copy exit 1, failures named.
+Manual: user ran scripts/verify-cargo-audit.sh on the laptop and confirmed PASS.
