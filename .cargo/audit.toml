@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+# cargo audit settings (scripts/ci.sh; scripts/verify-cargo-audit.sh checks the
+# reasons below still hold).
+[advisories]
+ignore = [
+  # rsa 0.9 (Marvin attack): in Cargo.lock only, because sqlx-macros-core
+  # 0.8.6 lists sqlx-mysql; only sqlx's postgres driver is built
+  # (cargo tree -i rsa: no path).
+  "RUSTSEC-2023-0071",
+  # libsqlite3-sys 0.30 (C SQLite CVE): the same, via sqlx-sqlite.
+  "RUSTSEC-2026-0459",
+]
