@@ -1,0 +1,4 @@
+Task: /docs/docs.yaml sends application/yaml (track yaml-content-type_20261110, RUST-5.0 follow-up)
+Changes: crates/telemetry/src/docs/swagger.rs — Content-Type application/yaml (comment: as Scala sends, RUST-5.0 run). crates/telemetry/tests/docs.rs, crates/user-service/tests/docs.rs — expectations updated.
+Why: RUST-5.0 run found Scala sends no charset; gluon-contract test_docs.py now expects that (6fa3fab). The charset was inferred from tapir's source, never captured.
+Verified: red 3 failures on the header; green telemetry docs 12/12, user-service docs 3/3, fmt + clippy clean; harness checks/test_docs.py 22/22 against the Rust build.
