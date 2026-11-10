@@ -6,6 +6,8 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
+- [ ] **Track: cargo audit green: lockfile-only sqlx driver advisories ignored with reason, serde_yaml replaced by serde_norway**
+  *Link: [./tracks/cargo-audit_20261110/](./tracks/cargo-audit_20261110/)*
 
 
 
@@ -25,5 +27,4 @@ scope: gluon `PLAN.md` "Rust Spike" (ADR 0028). One track per PLAN item, worked 
 outside-in order (each harness group in `tests/contract` first), each ending with a review.
 When ready, run `/conductor:newTrack <title>`.
 
-- cargo audit green: audit.toml ignores for RUSTSEC-2026-0459 (libsqlite3-sys) and RUSTSEC-2023-0071 (rsa), lockfile-only via sqlx's sqlite/mysql drivers; RUSTSEC-2024-0449 unsafe-libyaml (dev-only via serde_yaml): replace or justify
 

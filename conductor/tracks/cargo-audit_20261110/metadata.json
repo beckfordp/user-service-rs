@@ -1,0 +1,8 @@
+{
+  "track_id": "cargo-audit_20261110",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-11-10T16:30:00Z",
+  "updated_at": "2026-11-10T16:30:00Z",
+  "description": "cargo audit green: lockfile-only sqlx driver advisories ignored with reason, serde_yaml replaced by serde_norway"
+}
