@@ -1,0 +1,4 @@
+Task: .cargo/audit.toml ignores (track cargo-audit_20261110)
+Files: .cargo/audit.toml (new)
+Ignores RUSTSEC-2023-0071 (rsa) and RUSTSEC-2026-0459 (libsqlite3-sys): Cargo.lock only via sqlx-macros-core 0.8.6 listing sqlx-mysql/sqlx-sqlite; only postgres driver built. verify-cargo-audit.sh step 2 re-checks that.
+Result: cargo audit --deny warnings exit 0; verify --skip-ci PASS (5 checks). .cargo/ not in sandbox-export excludes.
