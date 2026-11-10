@@ -6,9 +6,6 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
-- [x] **Track: RUST-5.0 follow-up: docs.yaml Content-Type is application/yaml, as Scala**
-  *Link: [./tracks/yaml-content-type_20261110/](./tracks/yaml-content-type_20261110/)*
-
 
 
 
