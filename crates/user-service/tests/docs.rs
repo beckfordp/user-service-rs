@@ -22,7 +22,7 @@ fn spec(service: &Service) -> Value {
     let (status, content_type, body) = service.get("/docs/docs.yaml").unwrap();
     assert_eq!(status, 200);
     assert_eq!(content_type.as_deref(), Some("application/yaml"));
-    serde_yaml::from_str(&body).unwrap()
+    serde_norway::from_str(&body).unwrap()
 }
 
 #[test]
