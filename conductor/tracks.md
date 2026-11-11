@@ -25,4 +25,6 @@ scope: gluon `PLAN.md` "Rust Spike" (ADR 0028). One track per PLAN item, worked 
 outside-in order (each harness group in `tests/contract` first), each ending with a review.
 When ready, run `/conductor:newTrack <title>`.
 
+- GitHub Actions green: `cargo test --test asyncapi` fails on the runner (main, 2026-11-10); work is on main only, red CI hides real failures
+
 
