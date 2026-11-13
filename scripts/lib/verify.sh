@@ -85,28 +85,3 @@ pg_stop() {
   rm -rf "$PG_DIR"
   PG_DIR=""
 }
-
-# contract_checks PYTEST_ARGS...: runs checks from gluon's tests/contract (paths
-# relative to it) against this repo's build, reporting each one as it is found.
-contract_checks() {
-  local repo="$PWD" contract log count=0
-  contract="$(realpath "$repo/../../tests/contract")"
-  log="$(mktemp)"
-  if ! cargo build -q --locked -p user-service > "$log" 2>&1; then
-    bad "cargo build failed"
-    tail -5 "$log" | sed 's/^/     /'
-    rm -f "$log"
-    return
-  fi
-  (cd "$contract" && uv run --no-sync pytest -p no:cacheprovider -rA --tb=line -q "$@" \
-    --target-cmd "$repo/target/debug/user-service" --target-cwd "$repo" --target-name user-service-rs) > "$log" 2>&1
-  while read -r outcome test rest; do
-    count=$((count + 1))
-    if [ "$outcome" = PASSED ]; then ok "contract: ${test##*::}"; else bad "contract: ${test##*::} $rest"; fi
-  done < <(grep -E '^(PASSED|FAILED|ERROR) [^ ]+::' "$log")
-  if [ "$count" = 0 ]; then
-    bad "no contract checks ran:"
-    tail -5 "$log" | sed 's/^/     /'
-  fi
-  rm -f "$log"
-}

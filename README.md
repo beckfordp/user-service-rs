@@ -36,7 +36,9 @@ CI needs gluon's `registry/` for the payload schema test: at `../../registry`
 
 The sandbox's toolchain and cargo-llvm-cov come from gluon `bin/sandbox-setup`.
 Each track has a `scripts/verify-<track>.sh` that checks what it set out to do,
-reporting each result as it finds it.
+reporting each result as it finds it; at archive it is retired once CI and the
+harness cover it (`conductor/workflow.md`). Regression: `scripts/ci.sh` here,
+gluon `bin/verify-port user-service` across repos.
 
 ## How it is judged
 The specified contracts are the reference: the documented contracts, the
