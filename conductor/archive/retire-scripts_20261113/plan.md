@@ -37,3 +37,5 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 At archive: `verify-retire-scripts.sh` itself retired (per the rule). gluon follow-up (verify-port lists, docs table, TD-46 tick) recorded, done in gluon root.
+
+At archive: `verify-retire-scripts.sh` deleted (per the rule: every section covered by CI or one-off).
