@@ -1,0 +1,1 @@
+Phase 3 verification: scripts/verify-retire-scripts.sh (full, with ci.sh) PASS 32 checks, coverage 84.79%. Failure path: copy listing a missing kept tool -> exit 1, FAIL names it. Prompting off: script-verified.
