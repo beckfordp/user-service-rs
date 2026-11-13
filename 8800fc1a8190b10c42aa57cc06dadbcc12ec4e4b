@@ -1,0 +1,1 @@
+Phase 1 verification: scripts/verify-retire-scripts.sh --skip-ci red as intended, 26 of 31 failed (12 scripts present, self-referenced, contract_checks defined, no workflow rule); 5 kept tools parse. Coverage map in plan: all sections covered, no new tests needed. Prompting off: script-verified.
