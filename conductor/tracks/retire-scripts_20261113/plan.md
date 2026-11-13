@@ -26,10 +26,10 @@
   | yaml-content-type §2 header, HEAD | `telemetry/tests/docs.rs` `the_spec_is_served_as_yaml`, `head_is_not_allowed` |
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: Retire
+## Phase 2: Retire [checkpoint: b6b2911]
 - [x] Task: Delete the 12 `scripts/verify-*.sh`; drop `contract_checks` from `scripts/lib/verify.sh` `8115ee3`
 - [x] Task: Live references updated (README, conductor product/tech-stack); archives untouched `8115ee3` — README only; product, guidelines name the Scala repo's scripts (kept)
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Rule
 - [ ] Task: `conductor/workflow.md` Phase Completion step 4 — retirement rule: at archive, script sections covered by CI/harness → script deleted; CI-runnable remainder → moved to CI; only non-CI-runnable kept
