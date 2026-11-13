@@ -1,0 +1,1 @@
+Phase 2 verification: scripts/verify-retire-scripts.sh --skip-ci 30 of 31 pass; only remaining FAIL is the workflow.md rule (Phase 3). 12 scripts deleted, contract_checks removed, README updated. Prompting off: script-verified.
