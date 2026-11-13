@@ -36,7 +36,7 @@ pub struct UserResponse {
 /// `GET /users/{id}`.
 pub async fn get_user(State(state): State<AppState>, Path(raw): Path<String>) -> Response {
     // tapir's UUID codec is `java.util.UUID.fromString`: lenient groups, no
-    // undashed, braced or URN forms (RUST-3.3; harness test_rest.py).
+    // undashed, braced or URN forms (RUST-3.3; harness test_user_rest.py).
     let Some(id) = parse_uuid(&raw) else {
         return TextError {
             status: StatusCode::BAD_REQUEST,

@@ -13,7 +13,7 @@
   add a harness check with its source first; if no source pins it down, ask
   for a capture from the Scala service on the laptop.
 - Documenting existing behaviour is allowed; changing it is not. A gap found
-  here is recorded in the track and raised in gluon (PLAN.md "Rust Spike").
+  here is recorded in the track and raised in gluon (`plans/rust-port/user-service/plan.md`).
 
 ## Code & engineering conventions
 Canonical source: [`code_styleguides/rust.md`](./code_styleguides/rust.md)
@@ -51,4 +51,4 @@ services' `scala-fp.md`.
 - The harness (`tests/contract`, isolated mode) against a build of this
   service at each phase checkpoint.
 - Only Rust (and, if needed, Python or TypeScript tooling) changes in the
-  sandbox; the Dockerfile is written and built on the laptop (Rust Spike 5).
+  sandbox; the Dockerfile is written and built on the laptop (RUST-5).

@@ -11,10 +11,10 @@ observability contracts, deployed under the same Helm release
 this service in isolated mode (119 checks in `tests/contract`), and the
 consumer probe's group too. The laptop pass (the image, gluon-local, the
 harness against the Scala service) is prepared but not run. How to verify it
-all: gluon [`docs/rust-spike-verification.md`](../../docs/rust-spike-verification.md);
-what was learned: [`docs/rust-spike-findings.md`](../../docs/rust-spike-findings.md).
+all: gluon [`docs/ports/user-service-verification.md`](../../docs/ports/user-service-verification.md);
+what was learned: [`docs/ports/user-service-findings.md`](../../docs/ports/user-service-findings.md).
 Work is planned in [`conductor/tracks.md`](./conductor/tracks.md) and
-sequenced in gluon [`PLAN.md`](../../PLAN.md) "Rust Spike".
+sequenced in gluon [`plans/rust-port/user-service/plan.md`](../../plans/rust-port/user-service/plan.md).
 
 ## Build and check
 
@@ -48,7 +48,7 @@ this port is done when every group is green for both.
 
 Developed and tested in the sandbox (Rust, Postgres binaries, no Docker);
 the Docker image and the gluon-local deployment come in the laptop pass
-(PLAN.md Rust Spike 5).
+(PLAN.md RUST-5).
 
 ## Layout
 A cargo workspace (see [`conductor/tech-stack.md`](./conductor/tech-stack.md)),

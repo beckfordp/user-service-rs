@@ -1,7 +1,7 @@
 # Initial Concept
 
 A wire-compatible Rust port of user-service, built as a time-boxed spike per
-gluon ADR 0028 and PLAN.md "Rust Spike". It is a drop-in replacement: same
+gluon ADR 0028 and gluon `plans/rust-port/user-service/plan.md`. It is a drop-in replacement: same
 contracts, same Helm release, chosen in gluon-local by an implementation
 switch.
 
@@ -13,7 +13,7 @@ Full cross-repo vision lives in the `gluon` platform repo, not here:
 (the decision this repo exists for),
 [`../../../docs/system-design.md`](../../../docs/system-design.md),
 [`../../../docs/user-stories.md`](../../../docs/user-stories.md),
-[`../../../PLAN.md`](../../../PLAN.md) ("Rust Spike").
+[`../../../plans/rust-port/user-service/plan.md`](../../../plans/rust-port/user-service/plan.md).
 
 The reference is the specified contracts (ADR 0028 decision 2): the
 documented contracts, the Scala-generated OpenAPI/AsyncAPI artifacts, the
@@ -67,7 +67,7 @@ Same as the Scala user-service (US-16.1–16.3, ADM-3):
   consumes `user-events` only inside the contract harness, never in
   gluon-local.
 
-## Sequencing (gluon `PLAN.md` "Rust Spike")
+## Sequencing (gluon `plans/rust-port/user-service/plan.md`)
 Items owned by this repo: RUST-2.2–2.6 (scaffold, REST, Postgres, hashing),
 3.1–3.4 (outbox and the telemetry crate), 4.1–4.2 (docs parity) and 6.2–6.4
 (consumer probe), plus the Dockerfile and fixes in the laptop pass
@@ -75,7 +75,7 @@ Items owned by this repo: RUST-2.2–2.6 (scaffold, REST, Postgres, hashing),
 contract is written in `tests/contract` and seen failing just before the
 items here that turn it green (RUST-2.2/2.3 go with the runner, RUST-1.2,
 which needs a process to start). Developed and tested in the sandbox; the
-laptop pass (Rust Spike 5) deploys it to gluon-local. Time box: about 10
+laptop pass (RUST-5) deploys it to gluon-local. Time box: about 10
 working days for the whole spike; each item ends with a review.
 
 ## Out of scope

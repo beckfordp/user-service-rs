@@ -1,7 +1,7 @@
 # Tech Stack — user-service-rs
 
 Status (2026-11-08): proposed at conductor setup. Crate versions are pinned in
-`Cargo.lock` by the scaffold track (Rust Spike 2). Items marked **Open** are
+`Cargo.lock` by the scaffold track (RUST-2). Items marked **Open** are
 decided, and recorded here with a dated note, in the track that first needs
 them, before any code depends on them.
 
@@ -34,7 +34,7 @@ gluon `bin/sandbox-setup` in the same change.
   the seed of a Rust purerest equivalent, not extracted into gluon `lib/`
   unless the follow-up ADR decides to go further
 - `events-probe` — the consumer probe, run only inside the contract harness
-  (Rust Spike 6)
+  (RUST-6)
 
 ## HTTP
 - axum + tower / tower-http (CORS layer with the Scala service's exact policy:
@@ -140,12 +140,12 @@ gluon `bin/sandbox-setup` in the same change.
   `serde_norway` (the maintained `serde_yaml` fork).
 
 ## Packaging / local deploy
-- *(Laptop, Rust Spike 5)* Multi-stage Dockerfile → `user-service-rs:latest`
+- *(Laptop, RUST-5)* Multi-stage Dockerfile → `user-service-rs:latest`
   in the local Docker
   daemon (OrbStack), exposing 8080 and 9090
 - Deployed by gluon's generic Helm chart under the release name
   `user-service`, using `environments/local/user-service-rs.values.yaml` and
-  the `bin/k8s-local-up` implementation switch (PLAN.md Rust Spike 5)
+  the `bin/k8s-local-up` implementation switch (PLAN.md RUST-5)
 - CI: defined in `scripts/ci.sh`, run directly in the sandbox; GitHub Actions
   calls the same script once the repo is pushed (laptop). The payload schema
   check reads gluon's `registry/` (sibling checkout in the sandbox, sparse
