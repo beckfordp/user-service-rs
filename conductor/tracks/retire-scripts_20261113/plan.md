@@ -1,6 +1,6 @@
 # Plan — retire-scripts (gluon TD-46)
 
-## Phase 1: Acceptance and coverage map
+## Phase 1: Acceptance and coverage map [checkpoint: 8800fc1]
 - [x] Task: `scripts/verify-retire-scripts.sh`, red `390cb8e` — 26 of 31 failed: the 12 present and self-named, `contract_checks` defined, no rule
   - [x] Checks: the 12 gone; kept 5 present + `bash -n` clean; no `git grep` hits outside `conductor/archive`; `contract_checks` gone from `scripts/lib/verify.sh`; `workflow.md` states rule; `scripts/ci.sh` green
   - [x] Run: red for stated reasons (scripts present, rule absent)
@@ -24,7 +24,7 @@
   | service-start §4 harness starts it | verify-port `contract` step; gluon-contract cluster-mode test |
   | readiness §3 unreachable DB | `tests/readiness.rs` `an_unreachable_database_at_startup_exits_1` |
   | yaml-content-type §2 header, HEAD | `telemetry/tests/docs.rs` `the_spec_is_served_as_yaml`, `head_is_not_allowed` |
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Retire
 - [ ] Task: Delete the 12 `scripts/verify-*.sh`; drop `contract_checks` from `scripts/lib/verify.sh`
