@@ -1,0 +1,8 @@
+{
+  "track_id": "retire-scripts_20261113",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-11-13T12:00:00Z",
+  "updated_at": "2026-11-13T12:00:00Z",
+  "description": "TD-46: retire track scripts covered by CI and the harness"
+}

@@ -6,6 +6,9 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
+- [ ] **Track: TD-46: retire track scripts covered by CI and the harness**
+  *Link: [./tracks/retire-scripts_20261113/](./tracks/retire-scripts_20261113/)*
+
 
 
 
