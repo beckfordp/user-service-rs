@@ -32,8 +32,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Rule
-- [ ] Task: `conductor/workflow.md` Phase Completion step 4 — retirement rule: at archive, script sections covered by CI/harness → script deleted; CI-runnable remainder → moved to CI; only non-CI-runnable kept
-- [ ] Task: `verify-retire-scripts.sh` PASS; failure path proven on a copy
+- [x] Task: `conductor/workflow.md` Phase Completion step 4 — retirement rule: at archive, script sections covered by CI/harness → script deleted; CI-runnable remainder → moved to CI; only non-CI-runnable kept `bbdb8bc`
+- [x] Task: `verify-retire-scripts.sh` PASS; failure path proven on a copy — PASS 32 checks, ci.sh green (84.79% lines); copy with a missing kept tool: exit 1, tool named
 - [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 At archive: `verify-retire-scripts.sh` itself retired (per the rule). gluon follow-up (verify-port lists, docs table, TD-46 tick) recorded, done in gluon root.
