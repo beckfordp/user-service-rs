@@ -27,8 +27,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Retire
-- [ ] Task: Delete the 12 `scripts/verify-*.sh`; drop `contract_checks` from `scripts/lib/verify.sh`
-- [ ] Task: Live references updated (README, conductor product/tech-stack); archives untouched
+- [x] Task: Delete the 12 `scripts/verify-*.sh`; drop `contract_checks` from `scripts/lib/verify.sh` `8115ee3`
+- [x] Task: Live references updated (README, conductor product/tech-stack); archives untouched `8115ee3` — README only; product, guidelines name the Scala repo's scripts (kept)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Rule
