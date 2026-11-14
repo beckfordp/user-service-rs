@@ -6,8 +6,6 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
-- [x] **Track: On lib/gluon-rs: service-basics and service-testing (gluon TD-43.1)**
-  *Link: [./tracks/shared-basics_20261114/](./tracks/shared-basics_20261114/)*
 
 
 
