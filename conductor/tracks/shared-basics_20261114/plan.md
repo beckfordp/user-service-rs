@@ -3,7 +3,7 @@
 A refactor: the existing tests are the guard, run before and after each task.
 
 ## Phase 1: onto gluon-rs
-- [ ] Task: Path dependencies, `config` and `main` (guard: `tests/config.rs`, `startup.rs`)
+- [x] Task: Path dependencies, `config` and `main` (guard: `tests/config.rs`, `startup.rs`) e57d1cc
 - [ ] Task: `db`, `server` and `responses` (guard: health, readiness, metrics, tracing, logs tests)
 - [ ] Task: `tests/support` onto service-testing
 - [ ] Task: Dockerfile on the gluon-rs build context
