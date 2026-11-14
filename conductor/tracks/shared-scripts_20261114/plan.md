@@ -1,6 +1,6 @@
 # Plan — CI and verify scripts on gluon-rs's library, Linux and macOS (gluon TD-43.2)
 
-## Phase 1: scripts on the shared library
+## Phase 1: scripts on the shared library [checkpoint: a3395ee]
 - [x] Task: `ci.sh` and `verify-cargo-audit.sh` on gluon-rs's library; drop `scripts/lib/verify.sh` 71e5ab7
     - [x] Red: on a stock-macOS PATH, verify-cargo-audit.sh says "skip
           advisory database unreachable" with the database reachable
