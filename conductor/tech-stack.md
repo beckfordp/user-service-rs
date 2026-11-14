@@ -151,6 +151,9 @@ gluon `bin/sandbox-setup` in the same change.
   `user-service`, using `environments/local/user-service-rs.values.yaml` and
   the `bin/k8s-local-up` implementation switch (PLAN.md RUST-5)
 - CI: defined in `scripts/ci.sh`, run directly in the sandbox; GitHub Actions
-  calls the same script once the repo is pushed (laptop). The payload schema
+  calls the same script once the repo is pushed (laptop). Its steps are
+  gluon-rs's shared `scripts/lib/ci.sh` (Linux and macOS; `GLUON_RS` overrides
+  `../../lib/gluon-rs`) plus the registry baseline; the scripts are checked on
+  Linux from the laptop with gluon-rs's `scripts/on-linux.sh`. The payload schema
   check reads gluon's `registry/` (sibling checkout in the sandbox, sparse
   checkout in Actions). No GitHub Packages token needed.
