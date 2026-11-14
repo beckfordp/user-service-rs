@@ -16,3 +16,6 @@ A refactor: the existing tests are the guard, run before and after each task.
     - [x] gluon `bin/verify-port user-service --only build contract`: 128/128
     - [x] after gluon's `bin/k8s-local-up` change: the Rust image deployed,
           `bin/run-acceptance` 53/53
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions f07decc
