@@ -13,6 +13,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+service-basics = { path = "../../../../lib/gluon-rs/crates/service-basics" }
 telemetry = { path = "../telemetry" }
 opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
 axum = "0.8"
@@ -32,6 +33,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+service-testing = { path = "../../../../lib/gluon-rs/crates/service-testing" }
 opentelemetry-proto = { version = "0.33", default-features = false, features = ["gen-tonic-messages", "trace"] }
 prost = "0.14"
 serde_norway = "0.9.42"

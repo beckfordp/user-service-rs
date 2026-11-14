@@ -1708,6 +1708,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "service-basics"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "sqlx",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "service-testing"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+ "ureq",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2419,6 +2437,8 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "service-basics",
+ "service-testing",
  "sha2",
  "sqlx",
  "subtle",

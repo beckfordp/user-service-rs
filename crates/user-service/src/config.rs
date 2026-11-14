@@ -6,13 +6,16 @@
 //! Sources: user-service `application.conf` (names and defaults),
 //! `UserServiceConfig.validate` (ports, iterations, TTLs), purerest
 //! `TracingConfig.fromEnv` (OTLP endpoint, sampler ratio). Pure: an
-//! environment map in, a [`Config`] or every problem out.
+//! environment map in, a [`Config`] or every problem out; the pieces every
+//! service reads the same way are gluon-rs `service-basics`.
 
 use std::collections::HashMap;
-use std::fmt;
 use std::hash::BuildHasher;
 use std::path::PathBuf;
 use std::time::Duration;
+
+pub use service_basics::config::{ConfigError, PostgresConfig};
+use service_basics::config::{port, postgres};
 
 /// Everything the service reads from its environment.
 #[derive(Debug, Clone, PartialEq)]
@@ -35,21 +38,6 @@ pub struct Config {
     pub asyncapi_html_dir: PathBuf,
 }
 
-/// Where the service's database is.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PostgresConfig {
-    /// `POSTGRES_HOST`.
-    pub host: String,
-    /// `POSTGRES_PORT`.
-    pub port: u16,
-    /// `POSTGRES_DB`.
-    pub database: String,
-    /// `POSTGRES_USER`.
-    pub user: String,
-    /// `POSTGRES_PASSWORD`.
-    pub password: String,
-}
-
 /// Token lifetimes and password hashing cost.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthConfig {
@@ -70,25 +58,6 @@ pub struct TracingConfig {
     pub sampling_ratio: f64,
 }
 
-/// Every problem with the environment, so one fix-up round is enough.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConfigError {
-    /// One line per invalid variable.
-    pub problems: Vec<String>,
-}
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid configuration:")?;
-        for problem in &self.problems {
-            write!(f, "\n- {problem}")?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for ConfigError {}
-
 /// Reads the config from an environment map.
 ///
 /// # Errors
@@ -96,18 +65,9 @@ impl std::error::Error for ConfigError {}
 pub fn from_env<S: BuildHasher>(env: &HashMap<String, String, S>) -> Result<Config, ConfigError> {
     let mut problems = Vec::new();
     let text = |name: &str, default: &str| env.get(name).map_or(default, String::as_str).to_owned();
-    let mut port = |name: &str, default: u16| match env.get(name) {
-        None => default,
-        Some(raw) => raw.trim().parse::<u16>().unwrap_or_else(|_| {
-            problems.push(format!(
-                "{name} must be a port number (0-65535), got {raw:?}"
-            ));
-            default
-        }),
-    };
-    let http_port = port("USER_SERVICE_PORT", 8080);
-    let metrics_port = port("USER_SERVICE_METRICS_PORT", 9090);
-    let postgres_port = port("POSTGRES_PORT", 5432);
+    let http_port = port(env, "USER_SERVICE_PORT", 8080, &mut problems);
+    let metrics_port = port(env, "USER_SERVICE_METRICS_PORT", 9090, &mut problems);
+    let postgres = postgres(env, "user", &mut problems);
 
     let access_token_ttl = ttl(env, "AUTH_ACCESS_TOKEN_TTL", "1h", &mut problems);
     let refresh_token_ttl = ttl(env, "AUTH_REFRESH_TOKEN_TTL", "30d", &mut problems);
@@ -147,13 +107,7 @@ pub fn from_env<S: BuildHasher>(env: &HashMap<String, String, S>) -> Result<Conf
         port: http_port,
         metrics_port,
         service_name: text("USER_SERVICE_NAME", "user-service"),
-        postgres: PostgresConfig {
-            host: text("POSTGRES_HOST", "localhost"),
-            port: postgres_port,
-            database: text("POSTGRES_DB", "user"),
-            user: text("POSTGRES_USER", "user"),
-            password: text("POSTGRES_PASSWORD", "user"),
-        },
+        postgres,
         auth: AuthConfig {
             access_token_ttl,
             refresh_token_ttl,

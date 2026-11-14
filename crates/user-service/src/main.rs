@@ -3,9 +3,9 @@
 //! The `user-service` binary: reads the config contract, starts tracing, then
 //! serves until SIGTERM or SIGINT and flushes spans on the way out.
 
-use std::collections::HashMap;
 use std::process::ExitCode;
 
+use service_basics::{environment, runtime, shutdown};
 use telemetry::logging::Logger;
 use telemetry::metrics::Metrics;
 use telemetry::tracing::{SdkTracer, Tracing};
@@ -15,10 +15,7 @@ use user_service::store::Store;
 use user_service::{db, server};
 
 fn main() -> ExitCode {
-    let env: HashMap<String, String> = std::env::vars_os()
-        .filter_map(|(key, value)| Some((key.into_string().ok()?, value.into_string().ok()?)))
-        .collect();
-    let config = match config::from_env(&env) {
+    let config = match config::from_env(&environment::variables()) {
         Ok(config) => config,
         Err(error) => {
             eprintln!("user-service: {error}");
@@ -38,10 +35,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-    {
+    let runtime = match runtime::multi_thread() {
         Ok(runtime) => runtime,
         Err(error) => {
             eprintln!("user-service: can't start the async runtime: {error}");
@@ -85,29 +79,11 @@ async fn serve(config: &Config, tracer: SdkTracer) -> ExitCode {
         logger,
         asyncapi_html_dir: config.asyncapi_html_dir.clone(),
     };
-    match server::run(config, state, shutdown_signal()).await {
+    match server::run(config, state, shutdown::signal("user-service")).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("user-service: {error}");
             ExitCode::FAILURE
         }
-    }
-}
-
-/// Completes on SIGTERM (how the harness and Kubernetes stop a process) or SIGINT.
-async fn shutdown_signal() {
-    let interrupt = tokio::signal::ctrl_c();
-    let mut terminate =
-        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
-            Ok(signal) => signal,
-            Err(error) => {
-                eprintln!("user-service: can't listen for SIGTERM: {error}");
-                let _ = interrupt.await;
-                return;
-            }
-        };
-    tokio::select! {
-        _ = interrupt => {}
-        _ = terminate.recv() => {}
     }
 }
