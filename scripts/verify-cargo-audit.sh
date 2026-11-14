@@ -10,8 +10,13 @@
 set -uo pipefail
 SELF="$(realpath "${BASH_SOURCE[0]}")"
 cd "$(dirname "$SELF")/.." || exit 1
+GLUON_RS="${GLUON_RS:-$PWD/../../lib/gluon-rs}"
+if [ ! -f "$GLUON_RS/scripts/lib/verify.sh" ]; then
+  echo "FAIL no scripts/lib/verify.sh under $GLUON_RS (set GLUON_RS)"
+  exit 1
+fi
 # shellcheck source=../../../lib/gluon-rs/scripts/lib/verify.sh
-. "${GLUON_RS:-$PWD/../../lib/gluon-rs}/scripts/lib/verify.sh" || exit 1
+. "$GLUON_RS/scripts/lib/verify.sh"
 verify_as_owner "$SELF" "$@"
 SCRATCH="$(mktemp -d /tmp/verify-cargo-audit.XXXXXX)"
 trap 'rm -rf "$SCRATCH"' EXIT
