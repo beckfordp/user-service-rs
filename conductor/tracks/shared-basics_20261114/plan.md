@@ -9,7 +9,7 @@ A refactor: the existing tests are the guard, run before and after each task.
 - [x] Task: Dockerfile on the gluon-rs build context c35a833
     - [x] Red: `docker build` without the context fails on the path dependency
     - [x] Green: with it
-- [x] Task: Backlog item: the CI workflow's gluon-rs checkout
+- [x] Task: Backlog item: the CI workflow's gluon-rs checkout c4127dc
 - [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
     - [ ] `scripts/ci.sh` green
     - [ ] `docker build --build-context gluon-rs=../../lib/gluon-rs .`
