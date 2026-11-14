@@ -10,7 +10,7 @@ Developed and tested in the sandbox (ADR 0028): Rust via rustup, PostgreSQL 16
 binaries, Node 22 (Node 24 from npm's `node-linux-x64` for the AsyncAPI HTML),
 crates.io and npm reachable; no Docker, no GitHub. Every tool below runs
 there, except the Dockerfile, which is written and built on the laptop.
-gluon `docs/sandbox.md` records the sandbox; a tool added here is added to
+gluon `plans/private/sandbox.md` (laptop only) records the sandbox; a tool added here is added to
 gluon `bin/sandbox-setup` in the same change.
 
 ## Language / runtime

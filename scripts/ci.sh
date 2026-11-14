@@ -42,7 +42,7 @@ if ! cargo llvm-cov --workspace --locked --fail-under-lines 80 --summary-only 2>
 fi
 
 # The RustSec advisory database lives on GitHub, which the sandbox can't
-# reach (gluon docs/sandbox.md): say so rather than pass silently.
+# reach (gluon plans/private/sandbox.md): say so rather than pass silently.
 step "cargo audit"
 advisory_db="https://github.com/rustsec/advisory-db"
 if ! timeout 20 git ls-remote --exit-code "$advisory_db" HEAD > /dev/null 2>&1; then
