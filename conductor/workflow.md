@@ -137,6 +137,7 @@ Before marking any task complete, verify:
 - [ ] No linting or static analysis errors (`cargo fmt --check`, `cargo clippy -- -D warnings`)
 - [ ] Documentation updated if needed
 - [ ] No security vulnerabilities introduced (`cargo audit`)
+- [ ] A changed shell script runs on macOS, on a stock-macOS PATH (no Homebrew coreutils), and on Linux through gluon-rs's `scripts/on-linux.sh` (the Docker test bed, gluon TD-43.2); shellcheck clean
 - [ ] The `tests/contract` harness groups this task targets are green against a build of this service (from the first REST task on)
 
 ## Development Commands
