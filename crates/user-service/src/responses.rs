@@ -4,33 +4,14 @@
 //! domain errors, and tapir's plain text for framework errors.
 
 use axum::extract::{FromRequest, Request};
-use axum::http::{StatusCode, header};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
 use serde::de::DeserializeOwned;
 
-/// Exactly what the Scala service sends for text errors (not axum's `utf-8`).
-pub const TEXT_PLAIN: &str = "text/plain; charset=UTF-8";
-
-/// A framework error as tapir writes it: plain text.
-#[derive(Debug, Clone)]
-pub struct TextError {
-    /// The status.
-    pub status: StatusCode,
-    /// The whole body.
-    pub message: String,
-}
-
-impl IntoResponse for TextError {
-    fn into_response(self) -> Response {
-        (
-            self.status,
-            [(header::CONTENT_TYPE, TEXT_PLAIN)],
-            self.message,
-        )
-            .into_response()
-    }
-}
+/// tapir's plain text for framework errors, shared by every service (gluon-rs
+/// `service-basics`).
+pub use service_basics::text_error::{TEXT_PLAIN, TextError};
 
 /// Error body.
 #[derive(Debug, serde::Serialize, schemars::JsonSchema)]

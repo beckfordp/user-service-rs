@@ -8,9 +8,9 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
 use axum::Router;
-use axum::extract::State;
-use axum::http::StatusCode;
 use axum::routing::{get, post};
+use service_basics::health::{self, Readiness};
+use service_basics::text_error::{self, TextError, method_not_allowed};
 use telemetry::logging::Logger;
 use telemetry::metrics::{Metrics, ServerMetrics, server_metrics};
 use telemetry::tracing::{SdkTracer, Unmatched, server_tracing};
@@ -19,7 +19,6 @@ use tokio::sync::watch;
 
 use crate::config::{AuthConfig, Config};
 use crate::hashing::PasswordHasher;
-use crate::responses::TextError;
 use crate::store::Store;
 use crate::{auth, cors, docs, users};
 
@@ -51,9 +50,7 @@ pub struct AppState {
 pub fn router(state: AppState) -> Router {
     let tracer = state.tracer.clone();
     let server = ServerMetrics::new(&state.metrics);
-    Router::new()
-        .route("/health", get(health).head(method_not_allowed))
-        .route("/health/ready", get(ready).head(method_not_allowed))
+    health::routes()
         .route("/auth/signup", post(auth::signup))
         .route("/auth/login", post(auth::login))
         .route("/users/{id}", get(users::get_user).head(method_not_allowed))
@@ -66,41 +63,18 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// 405, as tapir answers a known path with another method (capture
-/// `http/*-wrong-method.txt`). HEAD included: tapir doesn't answer HEAD for a
-/// GET endpoint (capture `http/docs-yaml-headers.txt`).
-async fn method_not_allowed() -> TextError {
-    TextError {
-        status: StatusCode::METHOD_NOT_ALLOWED,
-        message: "Method Not Allowed".to_owned(),
-    }
-}
-
 /// 404 for any unknown path (capture `http/unknown-path.txt`); marked
 /// [`Unmatched`], so its span has no status code (capture stdout.log).
 async fn not_found() -> (Unmatched, TextError) {
-    (
-        Unmatched,
-        TextError {
-            status: StatusCode::NOT_FOUND,
-            message: "Not found".to_owned(),
-        },
-    )
+    (Unmatched, text_error::not_found().await)
 }
 
-/// `GET /health`: 200 with an empty body while the process is up; checks no
-/// dependencies (capture `http/health.txt`: no Content-Type).
-async fn health() -> StatusCode {
-    StatusCode::OK
-}
-
-/// `GET /health/ready`: 200 when Postgres answers a ping, 503 when it doesn't
-/// (capture `http/health-ready.txt`, openapi.yaml); empty body either way.
-async fn ready(State(state): State<AppState>) -> StatusCode {
-    if state.store.ping(READY_PING).await {
-        StatusCode::OK
-    } else {
-        StatusCode::SERVICE_UNAVAILABLE
+/// Ready when Postgres answers a ping within 2 s (capture
+/// `http/health-ready.txt`, openapi.yaml). The store's ping, so it is measured
+/// as `db.operation=ping` and through the pool metrics.
+impl Readiness for AppState {
+    async fn ready(&self) -> bool {
+        self.store.ping(READY_PING).await
     }
 }
 
