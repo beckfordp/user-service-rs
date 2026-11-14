@@ -14,26 +14,16 @@
 #
 # Runs as the repo's owner; from the sandbox's root desktop terminal it re-runs
 # itself as that user, so no root-owned files land in the repo or its target/.
+# Linux and macOS (gluon TD-43.2).
+# shellcheck source-path=SCRIPTDIR
 set -uo pipefail
 SELF="$(realpath "${BASH_SOURCE[0]}")"
-cd "$(dirname "$SELF")/.."
+cd "$(dirname "$SELF")/.." || exit 1
 REPO="$PWD"
-
-owner="$(stat -c %U "$REPO")"
-if [ "$(id -un)" != "$owner" ]; then
-  if [ "$(id -u)" = 0 ] && command -v runuser > /dev/null; then
-    home="$(getent passwd "$owner" | cut -d: -f6)"
-    echo "== re-running as $owner (files in the repo and its target/ stay $owner's) =="
-    exec runuser -u "$owner" -- env HOME="$home" PATH="$PATH" LANG=C.UTF-8 bash "$SELF" "$@"
-  fi
-  echo "FAIL run as $owner, who owns $REPO"
-  exit 1
-fi
-
-passed=0
-failed=0
-ok() { echo "ok   $*"; passed=$((passed + 1)); }
-bad() { echo "FAIL $*"; failed=$((failed + 1)); }
+GLUON_RS="$(realpath "${GLUON_RS:-../../lib/gluon-rs}")"
+# shellcheck source=../../../lib/gluon-rs/scripts/lib/verify.sh
+. "$GLUON_RS/scripts/lib/verify.sh" || exit 1
+verify_as_owner "$SELF" "$@"
 
 SCRATCH="$(mktemp -d /tmp/verify-rust-ci.XXXXXX)"
 trap 'rm -rf "$SCRATCH"' EXIT
@@ -41,12 +31,14 @@ trap 'rm -rf "$SCRATCH"' EXIT
 echo "== Prerequisites =="
 toolchain="$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)"
 rustc_version="$(rustc --version 2> /dev/null)"
-[[ "$rustc_version" == "rustc $toolchain "* ]] \
-  && ok "toolchain from rust-toolchain.toml: $rustc_version" \
-  || bad "toolchain: expected $toolchain, got '$rustc_version'"
+if [[ "$rustc_version" == "rustc $toolchain "* ]]; then
+  ok "toolchain from rust-toolchain.toml: $rustc_version"
+else
+  bad "toolchain: expected $toolchain, got '$rustc_version'"
+fi
 llvm_cov="$(cargo llvm-cov --version 2> /dev/null)"
-[ -n "$llvm_cov" ] && ok "$llvm_cov" || bad "cargo-llvm-cov not installed (gluon bin/sandbox-setup)"
-[ -x scripts/ci.sh ] && ok "scripts/ci.sh present" || bad "scripts/ci.sh missing or not executable"
+if [ -n "$llvm_cov" ]; then ok "$llvm_cov"; else bad "cargo-llvm-cov not installed (gluon bin/sandbox-setup)"; fi
+if [ -x scripts/ci.sh ]; then ok "scripts/ci.sh present"; else bad "scripts/ci.sh missing or not executable"; fi
 
 echo "== 1. scripts/ci.sh on the repo =="
 echo "     (the first run compiles the workspace twice: once plain, once instrumented)"
@@ -55,7 +47,7 @@ code=$?
 if [ "$code" = 0 ]; then
   while read -r step; do ok "step passed: ${step#== }"; done < <(grep '^== ' "$SCRATCH/ci.log")
   total="$(grep -E '^TOTAL' "$SCRATCH/ci.log" | awk '{print $(NF-3)}')"
-  [ -n "$total" ] && ok "line coverage: $total" || bad "no coverage summary in the output"
+  if [ -n "$total" ]; then ok "line coverage: $total"; else bad "no coverage summary in the output"; fi
 else
   bad "scripts/ci.sh failed (exit $code); its last lines:"
   tail -15 "$SCRATCH/ci.log" | sed 's/^/     /'
@@ -63,13 +55,16 @@ fi
 
 echo "== 2. Each gate stops a broken change (on a scratch copy) =="
 export CARGO_TARGET_DIR="$SCRATCH/target" # shared by the copies, so only changes rebuild
-# The copies live outside gluon, so ci.sh's default ../../registry isn't there.
-export GLUON_REGISTRY="$(realpath ../../registry)"
+# The copies sit in gluon's layout, so the crates' path dependency on
+# ../../lib/gluon-rs and ci.sh's ../../registry resolve as they do here.
+mkdir -p "$SCRATCH/lib" "$SCRATCH/services"
+ln -s "$GLUON_RS" "$SCRATCH/lib/gluon-rs"
+ln -s "$(realpath "${GLUON_REGISTRY:-../../registry}")" "$SCRATCH/registry"
 
 # broken DESCRIPTION EXPECTED_STEP EXPECTED_TEXT MUTATION_FUNCTION
 broken() {
   local description="$1" step="$2" text="$3" mutation="$4"
-  local copy="$SCRATCH/copy"
+  local copy="$SCRATCH/services/user-service-rs"
   rm -rf "$copy"
   mkdir -p "$copy"
   tar -C "$REPO" --exclude=./target --exclude=./.git -cf - . | tar -C "$copy" -xf -
@@ -133,11 +128,4 @@ else
   bad "neither ran nor said why it was skipped"
 fi
 
-echo
-total=$((passed + failed))
-if [ "$failed" = 0 ]; then
-  echo "PASS: RUST-2.2 CI verified ($passed checks)"
-else
-  echo "FAIL: $failed of $total checks failed"
-  exit 1
-fi
+verify_summary "RUST-2.2 CI"

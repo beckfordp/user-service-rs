@@ -31,7 +31,6 @@ outside-in order (each harness group in `tests/contract` first), each ending wit
 When ready, run `/conductor:newTrack <title>`.
 
 - GitHub Actions green: `cargo test --test asyncapi` fails on the runner (main, 2026-11-10); work is on main only, red CI hides real failures
-- verify-rust-ci.sh portable: line 22 `stat -c %U` fails on macOS (owner check; bin/verify-port tracks step red on the laptop); use scripts/lib/verify.sh's verify_as_owner (GNU/BSD stat fallback)
 
 
 - CI checks out gluon-rs: crates depend on ../../lib/gluon-rs by path (gluon TD-43.1); .github/workflows/ci.yml must check out gluon-rs alongside (the repo itself at services/user-service-rs in the workspace). Needs gluon-rs's GitHub remote first
