@@ -10,9 +10,9 @@ A refactor: the existing tests are the guard, run before and after each task.
     - [x] Red: `docker build` without the context fails on the path dependency
     - [x] Green: with it
 - [x] Task: Backlog item: the CI workflow's gluon-rs checkout c4127dc
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
-    - [ ] `scripts/ci.sh` green
-    - [ ] `docker build --build-context gluon-rs=../../lib/gluon-rs .`
-    - [ ] gluon `bin/verify-port user-service --only build contract`: 128/128
-    - [ ] after gluon's `bin/k8s-local-up` change: the Rust image deployed,
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+    - [x] `scripts/ci.sh` green
+    - [x] `docker build --build-context gluon-rs=../../lib/gluon-rs .`
+    - [x] gluon `bin/verify-port user-service --only build contract`: 128/128
+    - [x] after gluon's `bin/k8s-local-up` change: the Rust image deployed,
           `bin/run-acceptance` 53/53
