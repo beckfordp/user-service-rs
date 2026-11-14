@@ -6,16 +6,18 @@
 # Cargo.lock alone, never built; serde_yaml, and with it the unmaintained
 # unsafe-libyaml, is gone. Each result is printed as it is found.
 #   scripts/verify-cargo-audit.sh [--skip-ci]
+# shellcheck source-path=SCRIPTDIR
 set -uo pipefail
 SELF="$(realpath "${BASH_SOURCE[0]}")"
 cd "$(dirname "$SELF")/.." || exit 1
-. scripts/lib/verify.sh
+# shellcheck source=../../../lib/gluon-rs/scripts/lib/verify.sh
+. "${GLUON_RS:-$PWD/../../lib/gluon-rs}/scripts/lib/verify.sh" || exit 1
 verify_as_owner "$SELF" "$@"
 SCRATCH="$(mktemp -d /tmp/verify-cargo-audit.XXXXXX)"
 trap 'rm -rf "$SCRATCH"' EXIT
 ADVISORY_DB="https://github.com/rustsec/advisory-db"
 reachable=false
-timeout 20 git ls-remote --exit-code "$ADVISORY_DB" HEAD > /dev/null 2>&1 && reachable=true
+with_timeout 20 git ls-remote --exit-code "$ADVISORY_DB" HEAD > /dev/null 2>&1 && reachable=true
 
 echo "== 1. CI (scripts/ci.sh) =="
 if [ "${1:-}" = "--skip-ci" ]; then
