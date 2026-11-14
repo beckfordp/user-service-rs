@@ -9,3 +9,6 @@
     - [x] Red: on macOS it stops at "stat: illegal option -- c", "FAIL run as ,"
     - [x] Green: PASS on macOS and the Linux bed, every gate case stopping at its step
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions 505f419
