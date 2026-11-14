@@ -33,3 +33,4 @@ When ready, run `/conductor:newTrack <title>`.
 - verify-rust-ci.sh portable: line 22 `stat -c %U` fails on macOS (owner check; bin/verify-port tracks step red on the laptop); use scripts/lib/verify.sh's verify_as_owner (GNU/BSD stat fallback)
 
 
+- CI checks out gluon-rs: crates depend on ../../lib/gluon-rs by path (gluon TD-43.1); .github/workflows/ci.yml must check out gluon-rs alongside (the repo itself at services/user-service-rs in the workspace). Needs gluon-rs's GitHub remote first
