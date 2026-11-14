@@ -80,7 +80,11 @@ not imitated.
   tests use real dependencies (a throwaway Postgres from the local binaries;
   no Docker).
 - Wire parity is proven by the gluon `tests/contract` harness, not by
-  re-implementing its checks here.
+  re-implementing its checks here. Exception *(2026-11-14, gluon TD-46)*: what
+  the harness doesn't check byte for byte may be compared with capture files
+  copied unchanged into `tests/fixtures` (the AsyncAPI document,
+  `telemetry/tests/asyncapi.rs`); once the harness checks it, the copy and
+  its test go.
 
 ## Review checklist
 Reviewers check each change against these; any "no" is a **High** finding.
