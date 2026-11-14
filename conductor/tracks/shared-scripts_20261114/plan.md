@@ -8,4 +8,4 @@
 - [x] Task: `verify-rust-ci.sh` portable, its scratch copy laid out as gluon is 5ef5d8a
     - [x] Red: on macOS it stops at "stat: illegal option -- c", "FAIL run as ,"
     - [x] Green: PASS on macOS and the Linux bed, every gate case stopping at its step
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
