@@ -3,8 +3,6 @@
 //! `GET /users/{id}` (RUST-2.6; ADM-3, ADR 0025): public identity for
 //! recipient resolution. Source: capture 20261109 http/users-*.txt.
 
-use std::fmt::Write as _;
-
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -12,7 +10,6 @@ use axum::response::{IntoResponse, Response};
 use schemars::JsonSchema;
 use serde::Serialize;
 use telemetry::jvm::parse_uuid;
-use time::{OffsetDateTime, UtcOffset};
 
 use crate::auth::internal;
 use crate::responses::{TextError, json_error};
@@ -71,30 +68,6 @@ pub async fn get_user(State(state): State<AppState>, Path(raw): Path<String>) ->
     }
 }
 
-/// How `java.time.Instant.toString` prints an instant: UTC, seconds always,
-/// the fraction in 3, 6 or 9 digits as needed, then `Z`.
-#[must_use]
-pub fn java_instant(value: OffsetDateTime) -> String {
-    let utc = value.to_offset(UtcOffset::UTC);
-    let mut text = format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
-        utc.year(),
-        u8::from(utc.month()),
-        utc.day(),
-        utc.hour(),
-        utc.minute(),
-        utc.second()
-    );
-    let nanos = utc.nanosecond();
-    let _ = if nanos == 0 {
-        Ok(())
-    } else if nanos.is_multiple_of(1_000_000) {
-        write!(text, ".{:03}", nanos / 1_000_000)
-    } else if nanos.is_multiple_of(1_000) {
-        write!(text, ".{:06}", nanos / 1_000)
-    } else {
-        write!(text, ".{nanos:09}")
-    };
-    text.push('Z');
-    text
-}
+/// How `java.time.Instant.toString` prints an instant (gluon-rs
+/// `service-basics`, shared with notification-service-rs since gluon RPN-5).
+pub use service_basics::jvm::java_instant;
