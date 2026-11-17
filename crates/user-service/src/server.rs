@@ -19,17 +19,18 @@ use tokio::sync::watch;
 
 use crate::config::{AuthConfig, Config};
 use crate::hashing::PasswordHasher;
-use crate::store::Store;
+use crate::store::UserStore;
 use crate::{auth, cors, docs, users};
 
 /// How long readiness waits for Postgres to answer.
 const READY_PING: Duration = Duration::from_secs(2);
 
-/// What the handlers share.
+/// What the handlers share, over a store `S` ([`crate::store::PgUserStore`]
+/// in the service, an in-memory one in tests).
 #[derive(Clone)]
-pub struct AppState {
-    /// The instrumented database store.
-    pub store: Store,
+pub struct AppState<S> {
+    /// The service's tables.
+    pub store: S,
     /// The registry the scrape endpoint renders.
     pub metrics: Metrics,
     /// Hashes and verifies passwords.
@@ -47,7 +48,7 @@ pub struct AppState {
 /// The service's routes, as user-service `AppRoutes` layers them: traced,
 /// metered outside tracing, CORS outermost (a preflight is answered with no
 /// span and no measurement).
-pub fn router(state: AppState) -> Router {
+pub fn router<S: UserStore>(state: AppState<S>) -> Router {
     let tracer = state.tracer.clone();
     let server = ServerMetrics::new(&state.metrics);
     health::routes()
@@ -72,7 +73,7 @@ async fn not_found() -> (Unmatched, TextError) {
 /// Ready when Postgres answers a ping within 2 s (capture
 /// `http/health-ready.txt`, openapi.yaml). The store's ping, so it is measured
 /// as `db.operation=ping` and through the pool metrics.
-impl Readiness for AppState {
+impl<S: UserStore> Readiness for AppState<S> {
     async fn ready(&self) -> bool {
         self.store.ping(READY_PING).await
     }
@@ -83,9 +84,9 @@ impl Readiness for AppState {
 ///
 /// # Errors
 /// When a port can't be bound or serving fails.
-pub async fn run(
+pub async fn run<S: UserStore>(
     config: &Config,
-    state: AppState,
+    state: AppState<S>,
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> io::Result<()> {
     let metrics_listener = TcpListener::bind(SocketAddr::from((

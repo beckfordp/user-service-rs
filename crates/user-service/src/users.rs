@@ -14,6 +14,7 @@ use telemetry::jvm::parse_uuid;
 use crate::auth::internal;
 use crate::responses::{TextError, json_error};
 use crate::server::AppState;
+use crate::store::UserStore;
 
 /// Public identity for one account.
 #[derive(Debug, Serialize, JsonSchema)]
@@ -31,7 +32,10 @@ pub struct UserResponse {
 }
 
 /// `GET /users/{id}`.
-pub async fn get_user(State(state): State<AppState>, Path(raw): Path<String>) -> Response {
+pub async fn get_user<S: UserStore>(
+    State(state): State<AppState<S>>,
+    Path(raw): Path<String>,
+) -> Response {
     // tapir's UUID codec is `java.util.UUID.fromString`: lenient groups, no
     // undashed, braced or URN forms (RUST-3.3; harness test_user_rest.py).
     let Some(id) = parse_uuid(&raw) else {

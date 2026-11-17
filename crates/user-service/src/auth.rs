@@ -17,7 +17,7 @@ use crate::events;
 use crate::hashing::PasswordCheck;
 use crate::responses::{JsonBody, TextError, json_error};
 use crate::server::AppState;
-use crate::store::CreateOutcome;
+use crate::store::{CreateOutcome, UserStore};
 use crate::tokens::{self, TokenKind};
 
 /// Credentials for a new account.
@@ -85,8 +85,8 @@ fn with<'a>(
 }
 
 /// A 500 for an unexpected failure, logged as an ERROR line.
-pub(crate) fn internal(
-    state: &AppState,
+pub(crate) fn internal<S>(
+    state: &AppState<S>,
     context: &[(&str, &str)],
     error: impl std::fmt::Display,
 ) -> Response {
@@ -102,8 +102,8 @@ pub(crate) fn internal(
 }
 
 /// `POST /auth/signup`.
-pub async fn signup(
-    State(state): State<AppState>,
+pub async fn signup<S: UserStore>(
+    State(state): State<AppState<S>>,
     JsonBody(request): JsonBody<SignupRequest>,
 ) -> Response {
     state.logger.info(&SIGNUP, "Received request");
@@ -155,8 +155,8 @@ pub async fn signup(
 }
 
 /// `POST /auth/login`.
-pub async fn login(
-    State(state): State<AppState>,
+pub async fn login<S: UserStore>(
+    State(state): State<AppState<S>>,
     JsonBody(request): JsonBody<LoginRequest>,
 ) -> Response {
     state.logger.info(&LOGIN, "Received request");
@@ -219,8 +219,8 @@ pub async fn login(
 }
 
 /// Runs the (CPU-heavy) check off the async runtime; always one derivation.
-async fn verify(
-    state: &AppState,
+async fn verify<S>(
+    state: &AppState<S>,
     password: Password,
     stored: Option<String>,
 ) -> Result<PasswordCheck, tokio::task::JoinError> {

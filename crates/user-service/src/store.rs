@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 
 //! The service's tables (`user_account`, `auth_tokens`, `outbox_events`), as
-//! the Scala service writes them (its `UserStore`), instrumented as it is:
+//! the Scala service writes them (its `UserStore`). Handlers reach them
+//! through the [`UserStore`] trait, so they are testable with an in-memory
+//! store (`tests/routes.rs`); [`PgUserStore`] is the Postgres one,
+//! instrumented as the Scala store is:
 //! every call is timed as a `db.client.operation.duration` (`ping`, `insert`,
 //! `select`) around acquiring a connection from the measured pool and the
 //! work; registrations and logins are counted (`UserJourneyMetrics`). Writes
@@ -85,9 +88,58 @@ impl StoreError {
     }
 }
 
-/// The instrumented store.
+/// What the handlers need from the service's tables.
+pub trait UserStore: Clone + Send + Sync + 'static {
+    /// Whether the store answers within `within` (readiness).
+    fn ping(&self, within: Duration) -> impl Future<Output = bool> + Send;
+
+    /// Stores the account, its first access token and its `UserRegistered`
+    /// outbox event together (ADR 0008); a duplicate address stores nothing.
+    ///
+    /// # Errors
+    /// Store failures.
+    fn create_account(
+        &self,
+        id: Uuid,
+        email: &Email,
+        password_hash: &str,
+        access_token: &IssuedToken,
+        event: &OutboxEvent,
+    ) -> impl Future<Output = Result<CreateOutcome, StoreError>> + Send;
+
+    /// The account with this (normalised) address, if any.
+    ///
+    /// # Errors
+    /// Store failures.
+    fn find_by_email(
+        &self,
+        email: &Email,
+    ) -> impl Future<Output = Result<Option<StoredAccount>, StoreError>> + Send;
+
+    /// The account with this id, without its password hash.
+    ///
+    /// # Errors
+    /// Store failures.
+    fn find_by_id(
+        &self,
+        id: Uuid,
+    ) -> impl Future<Output = Result<Option<PublicAccount>, StoreError>> + Send;
+
+    /// Stores a login's access and refresh tokens together.
+    ///
+    /// # Errors
+    /// Store failures.
+    fn record_login_tokens(
+        &self,
+        user_id: Uuid,
+        access: &IssuedToken,
+        refresh: &IssuedToken,
+    ) -> impl Future<Output = Result<(), StoreError>> + Send;
+}
+
+/// The service's tables in Postgres, instrumented.
 #[derive(Debug, Clone)]
-pub struct Store {
+pub struct PgUserStore {
     pool: PgPool,
     pool_metrics: PoolMetrics,
     operations: Histogram,
@@ -98,7 +150,7 @@ pub struct Store {
 
 type Conn = Held<PoolConnection<Postgres>>;
 
-impl Store {
+impl PgUserStore {
     /// Wraps `pool` (named `user` in the metrics, as the Scala pool is).
     #[must_use]
     pub fn new(pool: PgPool, metrics: &Metrics, tracer: SdkTracer) -> Self {
@@ -132,8 +184,34 @@ impl Store {
         result
     }
 
+    /// The insert inside an `outbox.write` span (user-service
+    /// `UserStore.insertOutbox`): INTERNAL, a child of the request span, naming
+    /// the event type and aggregate.
+    async fn write_outbox(
+        &self,
+        tx: &mut PgConnection,
+        event: &OutboxEvent,
+    ) -> Result<(), sqlx::Error> {
+        let cx = internal_span(
+            &self.tracer,
+            "outbox.write",
+            vec![
+                KeyValue::new("outbox.event_type", event.event_type),
+                KeyValue::new("outbox.aggregate_id", event.aggregate_id.clone()),
+            ],
+        );
+        let trace_parent = traceparent(cx.span().span_context());
+        let inserted = insert_event(tx, event, &trace_parent)
+            .with_context(cx.clone())
+            .await;
+        cx.span().end();
+        inserted
+    }
+}
+
+impl UserStore for PgUserStore {
     /// Whether Postgres answers `SELECT 1` within `within`.
-    pub async fn ping(&self, within: Duration) -> bool {
+    async fn ping(&self, within: Duration) -> bool {
         self.timed("ping", async {
             let work = async {
                 let mut conn = self.connection().await?;
@@ -155,7 +233,7 @@ impl Store {
     ///
     /// # Errors
     /// Database failures.
-    pub async fn create_account(
+    async fn create_account(
         &self,
         id: Uuid,
         email: &Email,
@@ -198,7 +276,7 @@ impl Store {
     ///
     /// # Errors
     /// Database failures.
-    pub async fn find_by_email(&self, email: &Email) -> Result<Option<StoredAccount>, StoreError> {
+    async fn find_by_email(&self, email: &Email) -> Result<Option<StoredAccount>, StoreError> {
         self.timed("select", async {
             let mut conn = self.connection().await?;
             let row: Option<(Uuid, String)> =
@@ -215,7 +293,7 @@ impl Store {
     ///
     /// # Errors
     /// Database failures.
-    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<PublicAccount>, StoreError> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<PublicAccount>, StoreError> {
         self.timed("select", async {
             let mut conn = self.connection().await?;
             let row: Option<(Uuid, String, OffsetDateTime)> =
@@ -237,7 +315,7 @@ impl Store {
     ///
     /// # Errors
     /// Database failures.
-    pub async fn record_login_tokens(
+    async fn record_login_tokens(
         &self,
         user_id: Uuid,
         access: &IssuedToken,
@@ -254,30 +332,6 @@ impl Store {
         .await?;
         self.logins.add(1, &[]);
         Ok(())
-    }
-
-    /// The insert inside an `outbox.write` span (user-service
-    /// `UserStore.insertOutbox`): INTERNAL, a child of the request span, naming
-    /// the event type and aggregate.
-    async fn write_outbox(
-        &self,
-        tx: &mut PgConnection,
-        event: &OutboxEvent,
-    ) -> Result<(), sqlx::Error> {
-        let cx = internal_span(
-            &self.tracer,
-            "outbox.write",
-            vec![
-                KeyValue::new("outbox.event_type", event.event_type),
-                KeyValue::new("outbox.aggregate_id", event.aggregate_id.clone()),
-            ],
-        );
-        let trace_parent = traceparent(cx.span().span_context());
-        let inserted = insert_event(tx, event, &trace_parent)
-            .with_context(cx.clone())
-            .await;
-        cx.span().end();
-        inserted
     }
 }
 

@@ -11,7 +11,7 @@ use telemetry::metrics::Metrics;
 use telemetry::tracing::{SdkTracer, Tracing};
 use user_service::config::{self, Config};
 use user_service::hashing::PasswordHasher;
-use user_service::store::Store;
+use user_service::store::PgUserStore;
 use user_service::{db, server};
 
 fn main() -> ExitCode {
@@ -71,7 +71,7 @@ async fn serve(config: &Config, tracer: SdkTracer) -> ExitCode {
     );
     let metrics = Metrics::new(&config.service_name);
     let state = server::AppState {
-        store: Store::new(pool, &metrics, tracer.clone()),
+        store: PgUserStore::new(pool, &metrics, tracer.clone()),
         metrics,
         hasher: PasswordHasher::new(config.auth.pbkdf2_iterations),
         auth: config.auth.clone(),
