@@ -1,33 +1,23 @@
 // SPDX-License-Identifier: MIT
 
-//! The per-record decision notification-service's consumers share
-//! (`EnvelopeHandler`), with the lookup ADR 0025 gives them (`UserClient`).
+//! The probe's one route (`UserRegistered`), with the lookup ADR 0025 gives
+//! notification-service's consumers (`UserClient`). The rest of the
+//! per-record decision is gluon-rs `kafka-event-consumer`'s `handle_record`.
 
 use std::future::Future;
 
+use kafka_event_consumer::envelope::{Envelope, Routes};
 use serde::Deserialize;
-use serde_json::Value;
-
-/// The shared envelope (docs/system-design.md "Envelope").
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(dead_code)] // decoded to check the shape, as the Scala decoder does
-struct Envelope {
-    event_id: String,
-    event_type: String,
-    timestamp: String,
-    source: String,
-    correlation_id: String,
-    payload: Value,
-}
+use telemetry::logging::Logger;
 
 /// `UserRegistered`'s payload (gluon registry, `user-events-UserRegistered`).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct UserRegistered {
-    user_id: String,
-    #[allow(dead_code)]
-    email: String,
+pub struct UserRegistered {
+    /// Whom to look up.
+    pub user_id: String,
+    /// Decoded to check the shape, as the Scala decoder does.
+    pub email: String,
 }
 
 /// The recipient lookup: `Ok(Some(email))` found, `Ok(None)` unknown or
@@ -38,52 +28,45 @@ pub trait Lookup {
     fn email(&self, user_id: &str) -> impl Future<Output = Result<Option<String>, String>> + Send;
 }
 
-/// How a record was dealt with.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Handled {
-    /// The lookup found the user.
-    Resolved,
-    /// The lookup said there is no such user: terminal, not retried.
-    Unresolved,
-    /// A null value or an event type this consumer has no route for.
-    Skipped,
+/// The probe's routes on `topic`: `UserRegistered` → the lookup.
+pub struct UserEvents<L> {
+    /// The topic, for the log lines.
+    pub topic: String,
+    /// The recipient lookup.
+    pub lookup: L,
+    /// JSON log lines.
+    pub logger: Logger,
 }
 
-/// Why a record couldn't be dealt with.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failure {
-    /// The envelope or its payload doesn't decode: no retry will help.
-    Poison(String),
-    /// The lookup failed (5xx, transport, breaker open).
-    Lookup(String),
-}
+impl<L: Lookup + Sync> Routes for UserEvents<L> {
+    type Event = UserRegistered;
 
-/// Handles one record's value.
-///
-/// # Errors
-/// [`Failure`] when the record is poison or the lookup failed.
-pub async fn handle(value: Option<&str>, lookup: &impl Lookup) -> Result<Handled, Failure> {
-    let Some(raw) = value else {
-        return Ok(Handled::Skipped);
-    };
-    let envelope: Envelope =
-        serde_json::from_str(raw).map_err(|error| Failure::Poison(format!("envelope: {error}")))?;
-    if envelope.event_type != "UserRegistered" {
-        return Ok(Handled::Skipped);
+    fn decode(&self, envelope: &Envelope) -> Option<Result<UserRegistered, String>> {
+        (envelope.event_type == "UserRegistered").then(|| {
+            serde_json::from_value(envelope.payload.clone()).map_err(|error| error.to_string())
+        })
     }
-    let event: UserRegistered = serde_json::from_value(envelope.payload)
-        .map_err(|error| Failure::Poison(format!("UserRegistered payload: {error}")))?;
-    match lookup.email(&event.user_id).await {
-        Ok(Some(_)) => Ok(Handled::Resolved),
-        Ok(None) => Ok(Handled::Unresolved),
-        Err(error) => Err(Failure::Lookup(error)),
-    }
-}
 
-/// Whether the record's value decodes as an envelope at all (for the log line).
-#[must_use]
-pub fn event_type(value: &str) -> Option<String> {
-    serde_json::from_str::<Envelope>(value)
-        .ok()
-        .map(|e| e.event_type)
+    /// Resolved and unresolved are both done; a failed lookup is retried.
+    async fn handle(&self, _event_id: &str, event: &UserRegistered) -> Result<(), String> {
+        let topic = self.topic.as_str();
+        match self.lookup.email(&event.user_id).await {
+            Ok(Some(_)) => {
+                self.logger.info(&[("topic", topic)], "Recipient resolved");
+                Ok(())
+            }
+            Ok(None) => {
+                self.logger
+                    .warn(&[("topic", topic)], "Recipient unresolved");
+                Ok(())
+            }
+            Err(error) => {
+                self.logger.error(
+                    &[("topic", topic), ("error", &error)],
+                    "Recipient lookup failed",
+                );
+                Err(error)
+            }
+        }
+    }
 }

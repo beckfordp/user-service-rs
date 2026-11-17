@@ -9,10 +9,11 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use events_probe::config::{ProbeConfig, from_env};
-use events_probe::dead_letter::DeadLetter;
+use events_probe::handler::UserEvents;
 use events_probe::lookup::HttpLookup;
 use events_probe::run::{KafkaPublisher, Probe};
-use events_probe::supervisor::supervise;
+use kafka_event_consumer::dead_letter::DeadLetter;
+use kafka_event_consumer::supervisor::supervise;
 use telemetry::logging::Logger;
 use telemetry::metrics::Metrics;
 use telemetry::resilience::{CircuitBreakerConfig, RetryConfig};
@@ -129,12 +130,17 @@ async fn run(config: ProbeConfig, tracer: telemetry::tracing::SdkTracer) -> Exit
         logger.clone(),
     );
     let (base, max) = (config.restart_base_delay, config.restart_max_delay);
+    let routes = UserEvents {
+        topic: config.topic.clone(),
+        lookup,
+        logger: logger.clone(),
+    };
     let probe = Probe {
         config,
         tracer,
         logger,
         metrics,
-        lookup,
+        routes,
         dead_letter,
     };
     supervise(

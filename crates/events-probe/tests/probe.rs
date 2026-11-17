@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-//! The probe's pieces that need no broker (RUST-6.2 spec FR1, FR3-FR5): config,
-//! the per-record decision, event age, lag from librdkafka's statistics and the
-//! consumer span. Sources: gluon-contract `probe.py` (env contract);
-//! notification-service `EnvelopeHandler`, `UserClient`; purekafka
-//! `KafkaTracing.traced`, `EventAge`, `ConsumerLag`.
+//! The probe's pieces that need no broker (RUST-6.2 spec FR1, FR3): config,
+//! its `UserRegistered` route and the lag hook. Envelope handling, the DLQ,
+//! age, lag and the span are gluon-rs `kafka-event-consumer`'s, tested there.
+//! Sources: gluon-contract `probe.py` (env contract); notification-service
+//! `UserClient`; purekafka `ConsumerLag`.
 
 #![allow(
     clippy::unwrap_used,
@@ -14,16 +14,18 @@
 )]
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use events_probe::config::from_env;
-use events_probe::handler::{Failure, Handled, Lookup, handle};
-use events_probe::kafka::{consumer_span, event_age_seconds, lag_from_statistics};
-use opentelemetry::trace::{SpanKind, TraceContextExt};
-use opentelemetry_sdk::trace::InMemorySpanExporter;
-use serde_json::json;
-use telemetry::tracing::Tracing;
+use events_probe::handler::{Lookup, UserEvents};
+use events_probe::run::ProbeContext;
+use kafka_event_consumer::envelope::{Envelope, Routes};
+use kafka_event_consumer::lag::ConsumerMetrics;
+use rdkafka::ClientContext;
+use serde_json::{Value, json};
+use telemetry::logging::Logger;
+use telemetry::metrics::Metrics;
 
 fn env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
     pairs
@@ -104,141 +106,126 @@ impl Lookup for Table {
     }
 }
 
-fn table(entries: &[(&str, Result<Option<String>, String>)]) -> Table {
-    Table {
+/// The probe's routes over a lookup table, and the lines they log.
+fn routes(
+    entries: &[(&str, Result<Option<String>, String>)],
+) -> (UserEvents<Table>, Arc<Mutex<Vec<u8>>>) {
+    let log: Arc<Mutex<Vec<u8>>> = Arc::default();
+    let lookup = Table {
         answers: entries
             .iter()
             .map(|(k, v)| ((*k).to_owned(), v.clone()))
             .collect(),
         asked: Mutex::default(),
-    }
+    };
+    let routes = UserEvents {
+        topic: "user-events".to_owned(),
+        lookup,
+        logger: Logger::to_writer("events-probe", log.clone()),
+    };
+    (routes, log)
 }
 
-fn envelope(event_type: &str, payload: &serde_json::Value) -> String {
-    json!({
+fn logged(log: &Arc<Mutex<Vec<u8>>>) -> Vec<(String, String)> {
+    String::from_utf8(log.lock().unwrap().clone())
+        .unwrap()
+        .lines()
+        .map(|line| {
+            let line: Value = serde_json::from_str(line).unwrap();
+            (
+                line["level"].as_str().unwrap().to_owned(),
+                line["message"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect()
+}
+
+fn envelope(event_type: &str, payload: &Value) -> Envelope {
+    serde_json::from_value(json!({
         "eventId": "e1", "eventType": event_type, "timestamp": "2026-11-09T18:43:19.487722Z",
         "source": "user-service", "correlationId": "u1", "payload": payload
-    })
-    .to_string()
+    }))
+    .unwrap()
 }
 
 #[tokio::test]
-async fn a_user_registered_event_is_looked_up() {
-    let lookup = table(&[("u1", Ok(Some("u1@example.com".to_owned())))]);
-    let value = envelope(
-        "UserRegistered",
-        &json!({"userId": "u1", "email": "u1@example.com"}),
-    );
-    assert_eq!(handle(Some(&value), &lookup).await, Ok(Handled::Resolved));
-    assert_eq!(*lookup.asked.lock().unwrap(), ["u1"]);
-}
-
-#[tokio::test]
-async fn an_unknown_user_is_unresolved() {
-    let lookup = table(&[]);
-    let value = envelope("UserRegistered", &json!({"userId": "u2", "email": "e"}));
-    assert_eq!(handle(Some(&value), &lookup).await, Ok(Handled::Unresolved));
-}
-
-#[tokio::test]
-async fn unknown_types_and_null_values_are_skipped_without_a_lookup() {
-    let lookup = table(&[]);
-    let value = envelope("UserDeleted", &json!({"userId": "u3"}));
-    assert_eq!(handle(Some(&value), &lookup).await, Ok(Handled::Skipped));
-    assert_eq!(handle(None, &lookup).await, Ok(Handled::Skipped));
-    assert!(lookup.asked.lock().unwrap().is_empty());
-}
-
-#[tokio::test]
-async fn undecodable_envelopes_and_payloads_are_poison() {
-    let lookup = table(&[]);
-    assert!(matches!(
-        handle(Some("{nope"), &lookup).await,
-        Err(Failure::Poison(_))
-    ));
-    let missing = json!({"eventType": "UserRegistered"}).to_string();
-    assert!(matches!(
-        handle(Some(&missing), &lookup).await,
-        Err(Failure::Poison(_))
-    ));
-    let bad_payload = envelope("UserRegistered", &json!({"email": "no user id"}));
-    assert!(matches!(
-        handle(Some(&bad_payload), &lookup).await,
-        Err(Failure::Poison(_))
-    ));
-}
-
-#[tokio::test]
-async fn a_failing_lookup_is_a_lookup_failure() {
-    let lookup = table(&[("u4", Err("503".to_owned()))]);
-    let value = envelope("UserRegistered", &json!({"userId": "u4", "email": "e"}));
+async fn a_user_registered_event_is_looked_up_and_resolved() {
+    let (routes, log) = routes(&[("u1", Ok(Some("u1@example.com".to_owned())))]);
+    let event = routes
+        .decode(&envelope(
+            "UserRegistered",
+            &json!({"userId": "u1", "email": "u1@example.com"}),
+        ))
+        .unwrap()
+        .unwrap();
+    assert_eq!(routes.handle("e1", &event).await, Ok(()));
+    assert_eq!(*routes.lookup.asked.lock().unwrap(), ["u1"]);
     assert_eq!(
-        handle(Some(&value), &lookup).await,
-        Err(Failure::Lookup("503".to_owned()))
+        logged(&log),
+        [("INFO".to_owned(), "Recipient resolved".to_owned())]
+    );
+}
+
+#[tokio::test]
+async fn an_unknown_user_is_unresolved_and_done() {
+    let (routes, log) = routes(&[]);
+    let event = routes
+        .decode(&envelope(
+            "UserRegistered",
+            &json!({"userId": "u2", "email": "e"}),
+        ))
+        .unwrap()
+        .unwrap();
+    assert_eq!(routes.handle("e1", &event).await, Ok(()));
+    assert_eq!(
+        logged(&log),
+        [("WARN".to_owned(), "Recipient unresolved".to_owned())]
+    );
+}
+
+#[tokio::test]
+async fn a_failing_lookup_fails_the_event_for_the_guard_to_retry() {
+    let (routes, log) = routes(&[("u4", Err("503".to_owned()))]);
+    let event = routes
+        .decode(&envelope(
+            "UserRegistered",
+            &json!({"userId": "u4", "email": "e"}),
+        ))
+        .unwrap()
+        .unwrap();
+    assert_eq!(routes.handle("e1", &event).await, Err("503".to_owned()));
+    assert_eq!(
+        logged(&log),
+        [("ERROR".to_owned(), "Recipient lookup failed".to_owned())]
     );
 }
 
 #[test]
-fn event_age_is_now_minus_the_record_time_never_negative() {
-    assert!((event_age_seconds(10_500, 10_000) - 0.5).abs() < f64::EPSILON);
-    assert!(event_age_seconds(10_000, 12_000).abs() < f64::EPSILON);
+fn other_types_have_no_route_and_a_bad_payload_is_poison() {
+    let (routes, _log) = routes(&[]);
+    assert!(
+        routes
+            .decode(&envelope("UserDeleted", &json!({"userId": "u3"})))
+            .is_none()
+    );
+    assert!(matches!(
+        routes.decode(&envelope("UserRegistered", &json!({"email": "no user id"}))),
+        Some(Err(_))
+    ));
 }
 
 #[test]
-fn lag_comes_from_librdkafkas_statistics_per_assigned_partition() {
-    let statistics = json!({
-        "topics": {
-            "user-events": {"partitions": {
-                "0": {"partition": 0, "consumer_lag": 3},
-                "1": {"partition": 1, "consumer_lag": -1},
-                "-1": {"partition": -1, "consumer_lag": -1}
-            }},
-            "other": {"partitions": {"2": {"partition": 2, "consumer_lag": 0}}}
-        }
-    })
+fn librdkafkas_statistics_become_the_lag_gauge() {
+    let metrics = Metrics::new("events-probe");
+    let context = ProbeContext {
+        metrics: ConsumerMetrics::new(&metrics, "events-probe"),
+    };
+    let statistics = json!({"topics": {"user-events": {"partitions": {
+        "0": {"partition": 0, "consumer_lag": 7}
+    }}}})
     .to_string();
-    let mut lag = lag_from_statistics(&statistics);
-    lag.sort();
-    assert_eq!(
-        lag,
-        [("other".to_owned(), 2, 0), ("user-events".to_owned(), 0, 3)]
-    );
-    assert_eq!(lag_from_statistics("not json"), []);
-}
-
-#[test]
-fn each_record_gets_a_consumer_span_joining_its_traceparent() {
-    let exporter = InMemorySpanExporter::default();
-    let tracing = Tracing::with_exporter("events-probe", 1.0, exporter.clone());
-    let headers = vec![(
-        "traceparent".to_owned(),
-        "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".to_owned(),
-    )];
-    let cx = consumer_span(&tracing.tracer(), &headers, "user-events");
-    cx.span().end();
-    tracing.force_flush();
-    let spans = exporter.get_finished_spans().unwrap();
-    let span = &spans[0];
-    assert_eq!(span.name, "user-events process");
-    assert_eq!(span.span_kind, SpanKind::Consumer);
-    assert_eq!(
-        span.span_context.trace_id().to_string(),
-        "4bf92f3577b34da6a3ce929d0e0e4736"
-    );
-    assert_eq!(span.parent_span_id.to_string(), "00f067aa0ba902b7");
-    let attributes: Vec<(String, String)> = span
-        .attributes
-        .iter()
-        .map(|kv| (kv.key.to_string(), kv.value.to_string()))
-        .collect();
-    assert_eq!(
-        attributes,
-        [
-            ("messaging.system".to_owned(), "kafka".to_owned()),
-            (
-                "messaging.destination.name".to_owned(),
-                "user-events".to_owned()
-            )
-        ]
-    );
+    context.stats_raw(statistics.as_bytes());
+    let text = metrics.render();
+    assert!(text.contains("purekafka_consumer_lag{"), "{text}");
+    assert!(text.contains("} 7"), "{text}");
 }

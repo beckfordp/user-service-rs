@@ -11,21 +11,24 @@ use opentelemetry::context::FutureExt;
 use opentelemetry::trace::TraceContextExt;
 use std::time::Duration;
 
-use rdkafka::ClientConfig;
-use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
+use rdkafka::consumer::{CommitMode, Consumer, ConsumerContext, StreamConsumer};
 use rdkafka::error::KafkaError;
 use rdkafka::message::{BorrowedMessage, Headers, Message, OwnedHeaders};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::types::RDKafkaErrorCode;
+use rdkafka::{ClientConfig, ClientContext};
 use telemetry::logging::Logger;
 use telemetry::metrics::Metrics;
 use telemetry::tracing::SdkTracer;
 use tokio::sync::watch;
 
+use kafka_event_consumer::dead_letter::{DeadLetter, Publish};
+use kafka_event_consumer::envelope::handle_record;
+use kafka_event_consumer::lag::ConsumerMetrics;
+use kafka_event_consumer::span::consumer_span;
+
 use crate::config::ProbeConfig;
-use crate::dead_letter::{DeadLetter, Publish};
-use crate::handler::{Failure, Handled, Lookup, event_type, handle};
-use crate::kafka::{ConsumerMetrics, ProbeContext, consumer_span};
+use crate::handler::{Lookup, UserEvents};
 
 /// Dead letters go to Kafka through this producer.
 #[derive(Clone)]
@@ -63,6 +66,21 @@ impl Publish for KafkaPublisher {
     }
 }
 
+/// librdkafka's client context: statistics become the lag gauge.
+pub struct ProbeContext {
+    /// Where the lag goes.
+    pub metrics: ConsumerMetrics,
+}
+
+impl ClientContext for ProbeContext {
+    fn stats_raw(&self, statistics: &[u8]) {
+        self.metrics
+            .record_lag(&String::from_utf8_lossy(statistics));
+    }
+}
+
+impl ConsumerContext for ProbeContext {}
+
 /// What the loop needs.
 pub struct Probe<L, P> {
     /// The settings.
@@ -73,8 +91,8 @@ pub struct Probe<L, P> {
     pub logger: Logger,
     /// Where metrics go.
     pub metrics: Metrics,
-    /// The recipient lookup.
-    pub lookup: L,
+    /// What the probe does with each event.
+    pub routes: UserEvents<L>,
     /// The DLQ guard.
     pub dead_letter: DeadLetter<P>,
 }
@@ -128,9 +146,10 @@ fn headers(message: &BorrowedMessage<'_>) -> Vec<(String, String)> {
 }
 
 impl<L: Lookup + Sync, P: Publish + Sync> Probe<L, P> {
-    /// Handles one record inside its consumer span, under the DLQ guard
-    /// (`EnvelopeHandler`: a null value is skipped; anything that fails, poison
-    /// included, is retried and then dead-lettered raw).
+    /// Handles one record inside its consumer span (gluon-rs
+    /// `kafka-event-consumer`'s `handle_record`: a null value or unrelated type
+    /// is skipped; anything that fails, poison included, is retried and then
+    /// dead-lettered raw).
     ///
     /// # Errors
     /// Only when dead-lettering failed too: the stream must restart.
@@ -142,60 +161,18 @@ impl<L: Lookup + Sync, P: Publish + Sync> Probe<L, P> {
         headers: &[(String, String)],
     ) -> Result<(), String> {
         let cx = consumer_span(&self.tracer, headers, topic);
-        let result = async {
-            let Some(raw) = value else {
-                self.log(topic, None, &Ok(Handled::Skipped));
-                return Ok(());
-            };
-            self.dead_letter
-                .guard(topic, key, raw, || async {
-                    let outcome = handle(Some(raw), &self.lookup).await;
-                    self.log(topic, Some(raw), &outcome);
-                    outcome.map(|_| ()).map_err(|failure| match failure {
-                        Failure::Poison(error) | Failure::Lookup(error) => error,
-                    })
-                })
-                .await
-        }
+        let result = handle_record(
+            topic,
+            key,
+            value,
+            &self.routes,
+            &self.logger,
+            &self.dead_letter,
+        )
         .with_context(cx.clone())
         .await;
         cx.span().end();
         result
-    }
-
-    fn log(&self, topic: &str, value: Option<&str>, outcome: &Result<Handled, Failure>) {
-        match (outcome, value) {
-            (Ok(Handled::Skipped), None) => self.logger.error(
-                &[("topic", topic)],
-                &format!("Received {topic} record with a null value - skipping"),
-            ),
-            (Ok(Handled::Skipped), Some(raw)) => {
-                let kind = event_type(raw).unwrap_or_default();
-                self.logger.info(
-                    &[("topic", topic), ("event_type", &kind)],
-                    &format!("Ignoring unrelated {topic} event type"),
-                );
-            }
-            (Ok(Handled::Resolved), _) => {
-                self.logger.info(&[("topic", topic)], "Recipient resolved");
-            }
-            (Ok(Handled::Unresolved), _) => self
-                .logger
-                .warn(&[("topic", topic)], "Recipient unresolved"),
-            (Err(Failure::Poison(error)), raw) => {
-                let bytes = raw.map_or(0, str::len).to_string();
-                self.logger.error(
-                    &[("topic", topic), ("bytes", &bytes), ("error", error)],
-                    &format!("Failed to decode {topic} envelope"),
-                );
-            }
-            (Err(Failure::Lookup(error)), _) => {
-                self.logger.error(
-                    &[("topic", topic), ("error", error)],
-                    "Recipient lookup failed",
-                );
-            }
-        }
     }
 
     /// Consumes until `stop` says so: each record's age recorded, the record

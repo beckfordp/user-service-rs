@@ -35,7 +35,9 @@ gluon `bin/sandbox-setup` in the same change.
 - From `lib/gluon-rs` by path *(2026-11-14, gluon TD-43.1)*: `service-basics`
   (environment, shutdown, config, Postgres pool, plain-text errors, health),
   `telemetry` (tracing middleware, metrics, log format, error envelope; there
-  since gluon RPN-7, 2026-11-17) and, for tests, `service-testing`. The
+  since gluon RPN-7, 2026-11-17), `kafka-event-consumer` (the probe's
+  envelope routing, DLQ guard, supervisor, age/lag and consume span; there
+  since gluon RPN-8, 2026-11-17) and, for tests, `service-testing`. The
   Dockerfile gets it as the `gluon-rs` named build context.
 
 ## HTTP
@@ -104,7 +106,8 @@ gluon `bin/sandbox-setup` in the same change.
 ## Messaging
 - None at runtime: `UserRegistered` goes through the outbox table (ADR 0008).
 - `events-probe` only: rdkafka (librdkafka) for the consumer and its
-  dead-letter producer, reqwest for the resilience-wrapped HTTP call.
+  dead-letter producer, reqwest for the resilience-wrapped HTTP call; the
+  rest of the consumer side from gluon-rs `kafka-event-consumer`.
 
 ## Config
 - The Scala service's env vars: `USER_SERVICE_PORT`,

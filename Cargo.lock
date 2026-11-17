@@ -341,14 +341,13 @@ name = "events-probe"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "kafka-event-consumer",
  "opentelemetry",
- "opentelemetry_sdk",
  "rdkafka",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "telemetry",
- "thiserror",
  "tokio",
 ]
 
@@ -835,6 +834,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "kafka-event-consumer"
+version = "0.1.0"
+dependencies = [
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
+ "telemetry",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1112,7 +1124,6 @@ dependencies = [
  "portable-atomic",
  "rand 0.9.5",
  "thiserror",
- "tokio",
 ]
 
 [[package]]
