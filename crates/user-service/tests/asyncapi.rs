@@ -13,7 +13,7 @@ use std::process::Command;
 
 use support::{Postgres, Service};
 
-const CAPTURED: &str = include_str!("../../telemetry/tests/fixtures/asyncapi-user-service.json");
+const CAPTURED: &str = include_str!("fixtures/asyncapi-user-service.json");
 
 #[test]
 fn the_spec_binary_prints_the_scala_document() {

@@ -35,6 +35,9 @@ else
 fi
 export GLUON_REGISTRY="$registry"
 
-ci_coverage
+# The probe's startup and consume loop run only inside the contract harness
+# (its probe group, gluon criterion C10), which checks them; the probe retires
+# after gluon RPN-13. Measured, they would be 0% here.
+ci_coverage 'events-probe/src/(main|run)\.rs'
 # .cargo/audit.toml's ignores hold only while these are lockfile-only
 ci_audit rsa libsqlite3-sys

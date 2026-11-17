@@ -2,7 +2,7 @@
 # user-service-rs: a wire-compatible Rust port of user-service (gluon ADR 0028).
 [workspace]
 resolver = "3"
-members = ["crates/user-service", "crates/telemetry", "crates/events-probe"]
+members = ["crates/user-service", "crates/events-probe"]
 
 [workspace.package]
 version = "0.1.0"

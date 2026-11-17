@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 service-basics = { path = "../../../../lib/gluon-rs/crates/service-basics" }
-telemetry = { path = "../telemetry" }
+telemetry = { path = "../../../../lib/gluon-rs/crates/telemetry" }
 opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
 axum = "0.8"
 base64 = "0.22"
@@ -34,6 +34,9 @@ uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
 service-testing = { path = "../../../../lib/gluon-rs/crates/service-testing" }
+# tests/routes.rs: the routes in-process, with a tracer that exports nowhere.
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace"] }
+tower = { version = "0.5", features = ["util"] }
 opentelemetry-proto = { version = "0.33", default-features = false, features = ["gen-tonic-messages", "trace"] }
 prost = "0.14"
 serde_norway = "0.9.42"

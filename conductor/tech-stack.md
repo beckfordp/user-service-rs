@@ -30,15 +30,13 @@ gluon `bin/sandbox-setup` in the same change.
 
 ## Workspace layout (ADR 0028 decision 4)
 - `user-service` — the service binary
-- `telemetry` — tracing middleware, metrics, log format, error envelope;
-  the seed of a Rust purerest equivalent; moves to `lib/gluon-rs` in RPN-7
-  (ADR 0029, option 3)
 - `events-probe` — the consumer probe, run only inside the contract harness
   (RUST-6)
 - From `lib/gluon-rs` by path *(2026-11-14, gluon TD-43.1)*: `service-basics`
-  (environment, shutdown, config, Postgres pool, plain-text errors, health)
-  and, for tests, `service-testing`. The Dockerfile gets it as the `gluon-rs`
-  named build context.
+  (environment, shutdown, config, Postgres pool, plain-text errors, health),
+  `telemetry` (tracing middleware, metrics, log format, error envelope; there
+  since gluon RPN-7, 2026-11-17) and, for tests, `service-testing`. The
+  Dockerfile gets it as the `gluon-rs` named build context.
 
 ## HTTP
 - axum + tower / tower-http (CORS layer with the Scala service's exact policy:
@@ -89,7 +87,7 @@ gluon `bin/sandbox-setup` in the same change.
   units (`encode_utf16().count()`); email trimmed of characters up to U+0020
   only, lower-cased, and matched by a pattern whose `\s` is ASCII-only.
 
-## Observability (the `telemetry` crate)
+## Observability (gluon-rs's `telemetry` crate)
 - Tracing: `tracing` + `tracing-opentelemetry` + the `opentelemetry` crates,
   OTLP/HTTP export configured from `OTEL_EXPORTER_OTLP_ENDPOINT` and
   `OTEL_TRACES_SAMPLER_ARG` (malformed → startup fails); W3C `traceparent`

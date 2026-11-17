@@ -2097,11 +2097,9 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "tempfile",
  "thiserror",
  "time",
  "tokio",
- "tower",
  "uuid",
 ]
 
@@ -2431,6 +2429,7 @@ dependencies = [
  "bytes",
  "opentelemetry",
  "opentelemetry-proto",
+ "opentelemetry_sdk",
  "pbkdf2",
  "prost",
  "rand 0.9.5",
@@ -2448,6 +2447,7 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "tower",
  "ureq",
  "uuid",
 ]

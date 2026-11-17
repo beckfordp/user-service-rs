@@ -90,7 +90,7 @@ broken() {
   fi
 }
 
-LIB=crates/telemetry/src/lib.rs
+LIB=crates/user-service/src/lib.rs
 unformatted() { printf '\n/// Badly formatted.\npub fn   badly_formatted( ) {}\n' >> "$LIB"; }
 clippy_warning() {
   printf '\n/// Compares a bool with true.\n#[must_use]\npub fn is_true(flag: bool) -> bool {\n    flag == true\n}\n' >> "$LIB"
@@ -103,7 +103,7 @@ unsafe_code() {
   printf '\n/// Reads through a raw pointer.\n#[must_use]\npub fn read(value: &u8) -> u8 {\n    unsafe { *std::ptr::from_ref(value) }\n}\n' >> "$LIB"
 }
 failing_test() {
-  printf '//! A test that fails.\n\n#[test]\nfn fails() {\n    assert_eq!(1 + 1, 3);\n}\n' > crates/telemetry/tests/failing.rs
+  printf '//! A test that fails.\n\n#[test]\nfn fails() {\n    assert_eq!(1 + 1, 3);\n}\n' > crates/user-service/tests/failing.rs
 }
 low_coverage() {
   # Enough uncovered lines to pull the whole workspace under 80% (it grows), in
