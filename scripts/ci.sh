@@ -35,9 +35,9 @@ else
 fi
 export GLUON_REGISTRY="$registry"
 
-# The probe's startup and consume loop run only inside the contract harness
-# (its probe group, gluon criterion C10), which checks them; the probe retires
-# after gluon RPN-13. Measured, they would be 0% here.
-ci_coverage 'events-probe/src/(main|run)\.rs'
+# The probe's startup runs only inside the contract harness (its probe group,
+# gluon criterion C10), which checks it; the probe retires after gluon RPN-13.
+# Measured, it would be 0% here. (Its consume loop is gluon-rs kafka-client's.)
+ci_coverage 'events-probe/src/main\.rs'
 # .cargo/audit.toml's ignores hold only while these are lockfile-only
 ci_audit rsa libsqlite3-sys

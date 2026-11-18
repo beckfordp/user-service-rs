@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 //! The probe's pieces that need no broker (RUST-6.2 spec FR1, FR3): config,
-//! its `UserRegistered` route and the lag hook. Envelope handling, the DLQ,
+//! its `UserRegistered` route (the lag hook moved with the loop to gluon-rs
+//! `kafka-client`, gluon TD-S5). Envelope handling, the DLQ,
 //! age, lag and the span are gluon-rs `kafka-event-consumer`'s, tested there.
 //! Sources: gluon-contract `probe.py` (env contract); notification-service
 //! `UserClient`; purekafka `ConsumerLag`.
@@ -19,13 +20,10 @@ use std::time::Duration;
 
 use events_probe::config::from_env;
 use events_probe::handler::{Lookup, UserEvents};
-use events_probe::run::ProbeContext;
+use kafka_client::settings::ConsumerSettings;
 use kafka_event_consumer::envelope::{Envelope, Routes};
-use kafka_event_consumer::lag::ConsumerMetrics;
-use rdkafka::ClientContext;
 use serde_json::{Value, json};
 use telemetry::logging::Logger;
-use telemetry::metrics::Metrics;
 
 fn env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
     pairs
@@ -71,6 +69,20 @@ fn config_defaults_are_notification_services() {
     assert_eq!(config.lag_interval, Duration::from_secs(5));
     assert_eq!(config.metrics_port, 9091);
     assert_eq!(config.service_name, "events-probe");
+}
+
+#[test]
+fn the_consumer_is_the_probes_topic_and_group() {
+    let config = from_env(&env(&REQUIRED)).unwrap();
+    assert_eq!(
+        config.consumer_settings(),
+        ConsumerSettings {
+            bootstrap: config.bootstrap.clone(),
+            group_id: config.group_id.clone(),
+            topic: config.topic.clone(),
+            lag_interval: Duration::from_secs(5),
+        }
+    );
 }
 
 #[test]
@@ -212,20 +224,4 @@ fn other_types_have_no_route_and_a_bad_payload_is_poison() {
         routes.decode(&envelope("UserRegistered", &json!({"email": "no user id"}))),
         Some(Err(_))
     ));
-}
-
-#[test]
-fn librdkafkas_statistics_become_the_lag_gauge() {
-    let metrics = Metrics::new("events-probe");
-    let context = ProbeContext {
-        metrics: ConsumerMetrics::new(&metrics, "events-probe"),
-    };
-    let statistics = json!({"topics": {"user-events": {"partitions": {
-        "0": {"partition": 0, "consumer_lag": 7}
-    }}}})
-    .to_string();
-    context.stats_raw(statistics.as_bytes());
-    let text = metrics.render();
-    assert!(text.contains("purekafka_consumer_lag{"), "{text}");
-    assert!(text.contains("} 7"), "{text}");
 }

@@ -11,7 +11,8 @@ use std::time::Duration;
 use events_probe::config::{ProbeConfig, from_env};
 use events_probe::handler::UserEvents;
 use events_probe::lookup::HttpLookup;
-use events_probe::run::{KafkaPublisher, Probe};
+use kafka_client::consumer::EventConsumer;
+use kafka_client::publisher::KafkaPublisher;
 use kafka_event_consumer::dead_letter::DeadLetter;
 use kafka_event_consumer::supervisor::supervise;
 use telemetry::logging::Logger;
@@ -135,8 +136,8 @@ async fn run(config: ProbeConfig, tracer: telemetry::tracing::SdkTracer) -> Exit
         lookup,
         logger: logger.clone(),
     };
-    let probe = Probe {
-        config,
+    let probe = EventConsumer {
+        settings: config.consumer_settings(),
         tracer,
         logger,
         metrics,

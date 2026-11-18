@@ -341,9 +341,9 @@ name = "events-probe"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "kafka-client",
  "kafka-event-consumer",
  "opentelemetry",
- "rdkafka",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -831,6 +831,17 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kafka-client"
+version = "0.1.0"
+dependencies = [
+ "kafka-event-consumer",
+ "opentelemetry",
+ "rdkafka",
+ "telemetry",
+ "tokio",
 ]
 
 [[package]]

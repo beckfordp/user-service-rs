@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::time::Duration;
 
+use kafka_client::settings::ConsumerSettings;
 use telemetry::config::parse_duration;
 use telemetry::resilience::{CircuitBreakerConfig, RetryConfig};
 
@@ -44,6 +45,20 @@ pub struct ProbeConfig {
     pub otlp_endpoint: Option<String>,
     /// `OTEL_TRACES_SAMPLER_ARG` (default 1).
     pub sampling_ratio: f64,
+}
+
+impl ProbeConfig {
+    /// Its consumer: the probe's topic and group, on its broker, with its lag
+    /// interval (gluon-rs `kafka-client`).
+    #[must_use]
+    pub fn consumer_settings(&self) -> ConsumerSettings {
+        ConsumerSettings {
+            bootstrap: self.bootstrap.clone(),
+            group_id: self.group_id.clone(),
+            topic: self.topic.clone(),
+            lag_interval: self.lag_interval,
+        }
+    }
 }
 
 /// Reads the config; every problem at once.
