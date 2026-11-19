@@ -5,7 +5,8 @@
 //!
 //! Sources: user-service `application.conf` (names and defaults),
 //! `UserServiceConfig.validate` (ports, iterations, TTLs), purerest
-//! `TracingConfig.fromEnv` (OTLP endpoint, sampler ratio). Pure: an
+//! `TracingConfig.fromEnv` (OTLP endpoint, sampler ratio; gluon-rs
+//! `telemetry::config::tracing_from_env`). Pure: an
 //! environment map in, a [`Config`] or every problem out; the pieces every
 //! service reads the same way are gluon-rs `service-basics`.
 
@@ -16,6 +17,8 @@ use std::time::Duration;
 
 pub use service_basics::config::{ConfigError, PostgresConfig};
 use service_basics::config::{port, postgres};
+pub use telemetry::config::TracingConfig;
+use telemetry::config::tracing_from_env;
 
 /// Everything the service reads from its environment.
 #[derive(Debug, Clone, PartialEq)]
@@ -49,15 +52,6 @@ pub struct AuthConfig {
     pub pbkdf2_iterations: u32,
 }
 
-/// Where spans go, and how many.
-#[derive(Debug, Clone, PartialEq)]
-pub struct TracingConfig {
-    /// `OTEL_EXPORTER_OTLP_ENDPOINT`; `None` when unset or blank.
-    pub otlp_endpoint: Option<String>,
-    /// `OTEL_TRACES_SAMPLER_ARG`, in [0, 1]; 1.0 when unset or blank.
-    pub sampling_ratio: f64,
-}
-
 /// Reads the config from an environment map.
 ///
 /// # Errors
@@ -83,22 +77,7 @@ pub fn from_env<S: BuildHasher>(env: &HashMap<String, String, S>) -> Result<Conf
             }
         },
     };
-    let otlp_endpoint = env
-        .get("OTEL_EXPORTER_OTLP_ENDPOINT")
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty());
-    let sampling_ratio = match env.get("OTEL_TRACES_SAMPLER_ARG").map(|v| v.trim()) {
-        None | Some("") => 1.0,
-        Some(raw) => match raw.parse::<f64>() {
-            Ok(ratio) if (0.0..=1.0).contains(&ratio) => ratio,
-            _ => {
-                problems.push(format!(
-                    "OTEL_TRACES_SAMPLER_ARG must be a number between 0 and 1, got {raw:?}"
-                ));
-                1.0
-            }
-        },
-    };
+    let tracing = tracing_from_env(env, &mut problems);
 
     if !problems.is_empty() {
         return Err(ConfigError { problems });
@@ -113,10 +92,7 @@ pub fn from_env<S: BuildHasher>(env: &HashMap<String, String, S>) -> Result<Conf
             refresh_token_ttl,
             pbkdf2_iterations,
         },
-        tracing: TracingConfig {
-            otlp_endpoint,
-            sampling_ratio,
-        },
+        tracing,
         asyncapi_html_dir: PathBuf::from(text("ASYNCAPI_HTML_DIR", "target/asyncapi-docs")),
     })
 }

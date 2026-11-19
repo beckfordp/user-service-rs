@@ -6,18 +6,13 @@
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::process::ExitCode;
-use std::time::Duration;
 
 use events_probe::config::{ProbeConfig, from_env};
 use events_probe::handler::UserEvents;
 use events_probe::lookup::HttpLookup;
-use kafka_client::consumer::EventConsumer;
-use kafka_client::publisher::KafkaPublisher;
-use kafka_event_consumer::dead_letter::DeadLetter;
-use kafka_event_consumer::supervisor::supervise;
+use kafka_client::supervised::{ConsumerTelemetry, Resilience, run_supervised};
 use telemetry::logging::Logger;
 use telemetry::metrics::Metrics;
-use telemetry::resilience::{CircuitBreakerConfig, RetryConfig};
 use telemetry::tracing::Tracing;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
@@ -108,52 +103,37 @@ async fn run(config: ProbeConfig, tracer: telemetry::tracing::SdkTracer) -> Exit
         &[("topic", &config.topic), ("group", &config.group_id)],
         "events-probe starting",
     );
-    let publisher = match KafkaPublisher::new(&config.bootstrap) {
-        Ok(publisher) => publisher,
-        Err(error) => {
-            eprintln!("events-probe: {error}");
-            return ExitCode::FAILURE;
-        }
-    };
-    // notification-service's dlq-publish-resilience: 3 retries from 100ms, breaker 5 / 30s.
-    let dead_letter = DeadLetter::new(
-        config.dlq_retry,
-        RetryConfig {
-            max_retries: 3,
-            base_delay: Duration::from_millis(100),
-        },
-        CircuitBreakerConfig {
-            failure_threshold: 5,
-            reset_timeout: Duration::from_secs(30),
-        },
-        publisher,
-        &metrics,
-        logger.clone(),
-    );
-    let (base, max) = (config.restart_base_delay, config.restart_max_delay);
     let routes = UserEvents {
         topic: config.topic.clone(),
         lookup,
         logger: logger.clone(),
     };
-    let probe = EventConsumer {
-        settings: config.consumer_settings(),
+    // notification-service's kafka settings (gluon-rs Resilience::default), the
+    // probe's own dlq-retry and restart delays.
+    let resilience = Resilience {
+        dlq_retry: config.dlq_retry,
+        restart_base_delay: config.restart_base_delay,
+        restart_max_delay: config.restart_max_delay,
+        ..Resilience::default()
+    };
+    let consumer_telemetry = ConsumerTelemetry {
         tracer,
         logger,
         metrics,
-        routes,
-        dead_letter,
     };
-    supervise(
-        base,
-        max,
-        &probe.metrics,
-        &probe.logger,
+    let consumed = run_supervised(
+        config.consumer_settings(),
+        &resilience,
+        routes,
+        consumer_telemetry,
         stopped.clone(),
-        || probe.consume(stopped.clone()),
     )
     .await;
     server.abort();
+    if let Err(error) = consumed {
+        eprintln!("events-probe: {error}");
+        return ExitCode::FAILURE;
+    }
     ExitCode::SUCCESS
 }
 
