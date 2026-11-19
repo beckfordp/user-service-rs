@@ -9,6 +9,8 @@ use std::time::Duration;
 
 use axum::Router;
 use axum::routing::{get, post};
+use service_basics::cors::{CorsPolicy, Unrouted};
+use service_basics::edge::edge;
 use service_basics::health::{self, Readiness};
 use service_basics::text_error::{self, TextError, method_not_allowed};
 use telemetry::logging::Logger;
@@ -20,7 +22,7 @@ use tokio::sync::watch;
 use crate::config::{AuthConfig, Config};
 use crate::hashing::PasswordHasher;
 use crate::store::UserStore;
-use crate::{auth, cors, docs, users};
+use crate::{auth, docs, users};
 
 /// How long readiness waits for Postgres to answer.
 const READY_PING: Duration = Duration::from_secs(2);
@@ -46,12 +48,13 @@ pub struct AppState<S> {
 }
 
 /// The service's routes, as user-service `AppRoutes` layers them: traced,
-/// metered outside tracing, CORS outermost (a preflight is answered with no
-/// span and no measurement).
+/// metered outside tracing, behind the Scala services' edge (gluon-rs
+/// `service-basics`): CORS outermost (a preflight is answered with no span and
+/// no measurement; `Cors.scala` exposes `X-Total-Count`), tapir's Allow-less 405.
 pub fn router<S: UserStore>(state: AppState<S>) -> Router {
     let tracer = state.tracer.clone();
     let server = ServerMetrics::new(&state.metrics);
-    health::routes()
+    let routes = health::routes()
         .route("/auth/signup", post(auth::signup))
         .route("/auth/login", post(auth::login))
         .route("/users/{id}", get(users::get_user).head(method_not_allowed))
@@ -60,14 +63,15 @@ pub fn router<S: UserStore>(state: AppState<S>) -> Router {
         .fallback(not_found)
         .layer(axum::middleware::from_fn_with_state(tracer, server_tracing))
         .layer(axum::middleware::from_fn_with_state(server, server_metrics))
-        .layer(axum::middleware::from_fn(cors::cors))
-        .with_state(state)
+        .with_state(state);
+    edge(routes, CorsPolicy::exposing("X-Total-Count"))
 }
 
 /// 404 for any unknown path (capture `http/unknown-path.txt`); marked
-/// [`Unmatched`], so its span has no status code (capture stdout.log).
-async fn not_found() -> (Unmatched, TextError) {
-    (Unmatched, text_error::not_found().await)
+/// [`Unmatched`], so its span has no status code (capture stdout.log), and
+/// [`Unrouted`], so it gets no CORS headers.
+async fn not_found() -> (Unmatched, Unrouted, TextError) {
+    (Unmatched, Unrouted, text_error::not_found().await)
 }
 
 /// Ready when Postgres answers a ping within 2 s (capture

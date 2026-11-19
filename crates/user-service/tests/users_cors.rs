@@ -104,6 +104,8 @@ fn wrong_methods_are_405_and_unknown_paths_404_in_plain_text() {
         let (status, headers, body) = service.request(method, path, &[]);
         assert_eq!(status, 405, "{method} {path}");
         assert_eq!(header(&headers, "content-type"), TEXT, "{method} {path}");
+        // tapir's 405 has no Allow (gluon TD-52)
+        assert_eq!(header(&headers, "allow"), None, "{method} {path}");
         if method != "HEAD" {
             assert_eq!(body, "Method Not Allowed");
         }
@@ -155,5 +157,42 @@ fn cors_preflight_and_cross_origin_responses() {
             .iter()
             .all(|(name, _)| !name.starts_with("access-control-")),
         "{headers:?}"
+    );
+}
+
+#[test]
+fn cors_as_http4s_answers_what_its_policy_refuses_or_never_sees() {
+    // gluon TD-52: notification-service capture cors-preflight-bad-header.txt;
+    // http4s's CORS wraps the routes, so not orNotFound's 404.
+    let (_postgres, service) = started();
+    let origin = ("Origin", "http://localhost:5173");
+    let (status, headers, body) = service.request(
+        "OPTIONS",
+        "/auth/signup",
+        &[
+            origin,
+            ("Access-Control-Request-Method", "POST"),
+            ("Access-Control-Request-Headers", "authorization"),
+        ],
+    );
+    assert_eq!((status, body.as_str()), (200, ""));
+    assert_eq!(
+        header(&headers, "vary"),
+        Some("Access-Control-Request-Method, Access-Control-Request-Headers")
+    );
+    assert!(
+        headers
+            .iter()
+            .all(|(name, _)| !name.starts_with("access-control-")),
+        "refused: {headers:?}"
+    );
+
+    let (status, headers, _) = service.request("GET", "/no-such-path", &[origin]);
+    assert_eq!(status, 404);
+    assert!(
+        headers
+            .iter()
+            .all(|(name, _)| !name.starts_with("access-control-")),
+        "unrouted: {headers:?}"
     );
 }
