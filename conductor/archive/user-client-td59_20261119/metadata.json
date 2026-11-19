@@ -1,8 +1,8 @@
 {
   "track_id": "user-client-td59_20261119",
   "type": "refactor",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-11-20T00:20:00Z",
-  "updated_at": "2026-11-20T00:20:00Z",
+  "updated_at": "2026-11-20T00:45:00Z",
   "description": "events-probe looks users up through gluon-rs's user-client (gluon TD-59): its lookup.rs and LookupError move there."
 }

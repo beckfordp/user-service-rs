@@ -6,9 +6,6 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
-- [~] **Track: events-probe uses gluon-rs's user-client (gluon TD-59)**
-  *Link: [./tracks/user-client-td59_20261119/](./tracks/user-client-td59_20261119/)*
-
 ---
 
 ## Backlog
