@@ -1,8 +1,8 @@
 {
   "track_id": "kafka-client-td64_20261119",
   "type": "chore",
-  "status": "in_progress",
+  "status": "completed",
   "created_at": "2026-11-19T21:40:00Z",
-  "updated_at": "2026-11-19T21:40:00Z",
+  "updated_at": "2026-11-19T22:30:00Z",
   "description": "Adopt gluon-rs kafka-client's TD-64 changes in events-probe: typed route and lookup errors, GroupId/Topic. All-Rust sandbox prep P2."
 }
