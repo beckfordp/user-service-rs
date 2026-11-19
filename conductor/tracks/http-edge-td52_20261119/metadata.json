@@ -1,0 +1,8 @@
+{
+  "track_id": "http-edge-td52_20261119",
+  "type": "refactor",
+  "status": "in_progress",
+  "created_at": "2026-11-19T23:20:00Z",
+  "updated_at": "2026-11-19T23:20:00Z",
+  "description": "Adopt gluon-rs service-basics' HTTP edge (gluon TD-52.3): Scala-faithful CORS and the Allow-less 405 replace this service's cors.rs."
+}

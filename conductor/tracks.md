@@ -6,6 +6,9 @@ This file tracks all major tracks for the project.
 
 ## Tracks
 
+- [~] **Track: adopt service-basics' HTTP edge (gluon TD-52.3)**
+  *Link: [./tracks/http-edge-td52_20261119/](./tracks/http-edge-td52_20261119/)*
+
 ---
 
 ## Backlog
