@@ -19,11 +19,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use events_probe::config::from_env;
-use events_probe::handler::{Lookup, LookupError, ProbeError, UserEvents};
+use events_probe::handler::{Lookup, ProbeError, UserEvents};
 use kafka_client::settings::ConsumerSettings;
 use kafka_event_consumer::envelope::{Envelope, Routes};
 use serde_json::{Value, json};
 use telemetry::logging::Logger;
+use user_client::LookupError;
 
 fn env(pairs: &[(&str, &str)]) -> HashMap<String, String> {
     pairs

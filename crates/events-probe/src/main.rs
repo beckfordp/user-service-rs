@@ -9,13 +9,13 @@ use std::process::ExitCode;
 
 use events_probe::config::{ProbeConfig, from_env};
 use events_probe::handler::UserEvents;
-use events_probe::lookup::HttpLookup;
 use kafka_client::supervised::{ConsumerTelemetry, Resilience, run_supervised};
 use telemetry::logging::Logger;
 use telemetry::metrics::Metrics;
 use telemetry::tracing::Tracing;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
+use user_client::UserClient;
 
 fn main() -> ExitCode {
     let env: HashMap<String, String> = std::env::vars_os()
@@ -72,7 +72,7 @@ async fn run(config: ProbeConfig, tracer: telemetry::tracing::SdkTracer) -> Exit
             return ExitCode::FAILURE;
         }
     };
-    let lookup = match HttpLookup::new(
+    let lookup = match UserClient::new(
         &config.lookup_url,
         config.lookup_timeout,
         config.lookup_retry,

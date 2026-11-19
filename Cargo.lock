@@ -347,12 +347,12 @@ dependencies = [
  "kafka-client",
  "kafka-event-consumer",
  "opentelemetry",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
  "telemetry",
  "thiserror",
  "tokio",
+ "user-client",
 ]
 
 [[package]]
@@ -2433,6 +2433,16 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "user-client"
+version = "0.1.0"
+dependencies = [
+ "reqwest 0.12.28",
+ "serde",
+ "telemetry",
+ "thiserror",
 ]
 
 [[package]]

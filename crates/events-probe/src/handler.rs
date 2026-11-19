@@ -8,8 +8,8 @@ use std::future::Future;
 
 use kafka_event_consumer::envelope::{Envelope, Routes};
 use serde::Deserialize;
-use telemetry::client::ClientError;
 use telemetry::logging::Logger;
+use user_client::LookupError;
 
 /// `UserRegistered`'s payload (gluon registry, `user-events-UserRegistered`).
 #[derive(Debug, Clone, Deserialize)]
@@ -19,26 +19,6 @@ pub struct UserRegistered {
     pub user_id: String,
     /// Decoded to check the shape, as the Scala decoder does.
     pub email: String,
-}
-
-/// Why a lookup failed: retried, then dead-lettered. Each reads as the
-/// message it replaced (gluon TD-64.1).
-#[derive(Debug, thiserror::Error)]
-pub enum LookupError {
-    /// No response (breaker open, transport).
-    #[error(transparent)]
-    Client(#[from] ClientError),
-    /// A 200 whose body isn't a user.
-    #[error(transparent)]
-    Body(reqwest::Error),
-    /// Neither 200 nor 400/404.
-    #[error("Unexpected response from user-service for {user_id}: {status}")]
-    Status {
-        /// Whom it was asked about.
-        user_id: String,
-        /// What it answered.
-        status: u16,
-    },
 }
 
 /// Why a `UserRegistered` wasn't handled.
@@ -54,7 +34,8 @@ pub enum ProbeError {
 
 /// The recipient lookup: `Ok(Some(email))` found, `Ok(None)` unknown or
 /// malformed (400/404, permanently unresolved), `Err` anything else (retried,
-/// then dead-lettered).
+/// then dead-lettered). In the probe, gluon-rs's `UserClient`
+/// ([`crate::lookup`]); in tests, a table.
 pub trait Lookup {
     /// Looks `user_id` up.
     fn email(
