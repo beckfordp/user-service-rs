@@ -12,7 +12,7 @@ use telemetry::metrics::Metrics;
 use telemetry::resilience::{CircuitBreakerConfig, RetryConfig};
 use telemetry::tracing::SdkTracer;
 
-use crate::handler::Lookup;
+use crate::handler::{Lookup, LookupError};
 
 #[derive(Debug, Deserialize)]
 struct UserBody {
@@ -39,9 +39,8 @@ impl HttpLookup {
         breaker: CircuitBreakerConfig,
         tracer: SdkTracer,
         metrics: &Metrics,
-    ) -> Result<Self, String> {
-        let instrumented =
-            TracedClient::new(timeout, tracer, metrics).map_err(|error| error.to_string())?;
+    ) -> Result<Self, reqwest::Error> {
+        let instrumented = TracedClient::new(timeout, tracer, metrics)?;
         Ok(Self {
             client: ResilientClient::new(instrumented, retry, breaker, metrics),
             base_url: base_url.to_owned(),
@@ -50,23 +49,20 @@ impl HttpLookup {
 }
 
 impl Lookup for HttpLookup {
-    async fn email(&self, user_id: &str) -> Result<Option<String>, String> {
+    async fn email(&self, user_id: &str) -> Result<Option<String>, LookupError> {
         let url = format!("{}/users/{user_id}", self.base_url);
-        let response = self
-            .client
-            .get(&url)
-            .await
-            .map_err(|error| error.to_string())?;
+        let response = self.client.get(&url).await?;
         match response.status().as_u16() {
             200 => response
                 .json::<UserBody>()
                 .await
                 .map(|body| Some(body.email))
-                .map_err(|error| error.to_string()),
+                .map_err(LookupError::Body),
             400 | 404 => Ok(None),
-            other => Err(format!(
-                "Unexpected response from user-service for {user_id}: {other}"
-            )),
+            status => Err(LookupError::Status {
+                user_id: user_id.to_owned(),
+                status,
+            }),
         }
     }
 }

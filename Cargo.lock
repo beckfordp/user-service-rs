@@ -351,6 +351,7 @@ dependencies = [
  "serde",
  "serde_json",
  "telemetry",
+ "thiserror",
  "tokio",
 ]
 
@@ -844,6 +845,7 @@ dependencies = [
  "opentelemetry",
  "rdkafka",
  "telemetry",
+ "thiserror",
  "tokio",
 ]
 

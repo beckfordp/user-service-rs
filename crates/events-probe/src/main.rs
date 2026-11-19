@@ -100,11 +100,14 @@ async fn run(config: ProbeConfig, tracer: telemetry::tracing::SdkTracer) -> Exit
         let _ = stop.send(true);
     });
     logger.info(
-        &[("topic", &config.topic), ("group", &config.group_id)],
+        &[
+            ("topic", config.topic.as_str()),
+            ("group", config.group_id.as_str()),
+        ],
         "events-probe starting",
     );
     let routes = UserEvents {
-        topic: config.topic.clone(),
+        topic: config.topic.to_string(),
         lookup,
         logger: logger.clone(),
     };

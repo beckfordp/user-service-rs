@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use events_probe::config::from_env;
-use events_probe::handler::{Lookup, UserEvents};
+use events_probe::handler::{Lookup, LookupError, ProbeError, UserEvents};
 use kafka_client::settings::ConsumerSettings;
 use kafka_event_consumer::envelope::{Envelope, Routes};
 use serde_json::{Value, json};
@@ -43,6 +43,8 @@ const REQUIRED: [(&str, &str); 4] = [
 fn config_defaults_are_notification_services() {
     let config = from_env(&env(&REQUIRED)).unwrap();
     assert_eq!(config.bootstrap, "127.0.0.1:9092");
+    assert_eq!(config.topic.as_str(), "user-events");
+    assert_eq!(config.group_id.as_str(), "events-probe");
     assert_eq!(config.lookup_timeout, Duration::from_secs(5));
     assert_eq!(
         (
@@ -91,6 +93,8 @@ fn config_reports_every_problem() {
         ("PROBE_LOOKUP_TIMEOUT", "soon"),
         ("PROBE_DLQ_MAX_RETRIES", "-1"),
         ("PROBE_METRICS_PORT", "x"),
+        ("PROBE_TOPIC", "user events"),
+        ("PROBE_GROUP_ID", ""),
     ]))
     .unwrap_err();
     let text = error.join("\n");
@@ -100,27 +104,37 @@ fn config_reports_every_problem() {
         "PROBE_LOOKUP_TIMEOUT",
         "PROBE_DLQ_MAX_RETRIES",
         "PROBE_METRICS_PORT",
+        "PROBE_TOPIC: topic \"user events\" may hold only",
+        "PROBE_GROUP_ID: group id is empty",
     ] {
         assert!(text.contains(needle), "{needle} not in {text}");
     }
 }
 
-/// A lookup that answers from a table and records who it was asked about.
+/// A lookup that answers from a table (`Err(status)`: an unexpected response)
+/// and records who it was asked about.
 struct Table {
-    answers: HashMap<String, Result<Option<String>, String>>,
+    answers: HashMap<String, Result<Option<String>, u16>>,
     asked: Mutex<Vec<String>>,
 }
 
 impl Lookup for Table {
-    async fn email(&self, user_id: &str) -> Result<Option<String>, String> {
+    async fn email(&self, user_id: &str) -> Result<Option<String>, LookupError> {
         self.asked.lock().unwrap().push(user_id.to_owned());
-        self.answers.get(user_id).cloned().unwrap_or(Ok(None))
+        self.answers
+            .get(user_id)
+            .cloned()
+            .unwrap_or(Ok(None))
+            .map_err(|status| LookupError::Status {
+                user_id: user_id.to_owned(),
+                status,
+            })
     }
 }
 
 /// The probe's routes over a lookup table, and the lines they log.
 fn routes(
-    entries: &[(&str, Result<Option<String>, String>)],
+    entries: &[(&str, Result<Option<String>, u16>)],
 ) -> (UserEvents<Table>, Arc<Mutex<Vec<u8>>>) {
     let log: Arc<Mutex<Vec<u8>>> = Arc::default();
     let lookup = Table {
@@ -170,7 +184,7 @@ async fn a_user_registered_event_is_looked_up_and_resolved() {
         ))
         .unwrap()
         .unwrap();
-    assert_eq!(routes.handle("e1", &event).await, Ok(()));
+    assert!(routes.handle("e1", &event).await.is_ok());
     assert_eq!(*routes.lookup.asked.lock().unwrap(), ["u1"]);
     assert_eq!(
         logged(&log),
@@ -188,7 +202,7 @@ async fn an_unknown_user_is_unresolved_and_done() {
         ))
         .unwrap()
         .unwrap();
-    assert_eq!(routes.handle("e1", &event).await, Ok(()));
+    assert!(routes.handle("e1", &event).await.is_ok());
     assert_eq!(
         logged(&log),
         [("WARN".to_owned(), "Recipient unresolved".to_owned())]
@@ -197,7 +211,7 @@ async fn an_unknown_user_is_unresolved_and_done() {
 
 #[tokio::test]
 async fn a_failing_lookup_fails_the_event_for_the_guard_to_retry() {
-    let (routes, log) = routes(&[("u4", Err("503".to_owned()))]);
+    let (routes, log) = routes(&[("u4", Err(503))]);
     let event = routes
         .decode(&envelope(
             "UserRegistered",
@@ -205,7 +219,14 @@ async fn a_failing_lookup_fails_the_event_for_the_guard_to_retry() {
         ))
         .unwrap()
         .unwrap();
-    assert_eq!(routes.handle("e1", &event).await, Err("503".to_owned()));
+    let result = routes.handle("e1", &event).await;
+    let Err(ProbeError::Lookup(error @ LookupError::Status { status: 503, .. })) = result else {
+        panic!("want the lookup's 503, got {result:?}");
+    };
+    assert_eq!(
+        error.to_string(),
+        "Unexpected response from user-service for u4: 503"
+    );
     assert_eq!(
         logged(&log),
         [("ERROR".to_owned(), "Recipient lookup failed".to_owned())]
@@ -222,6 +243,6 @@ fn other_types_have_no_route_and_a_bad_payload_is_poison() {
     );
     assert!(matches!(
         routes.decode(&envelope("UserRegistered", &json!({"email": "no user id"}))),
-        Some(Err(_))
+        Some(Err(ProbeError::Payload(_)))
     ));
 }

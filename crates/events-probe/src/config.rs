@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::time::Duration;
 
-use kafka_client::settings::ConsumerSettings;
+use kafka_client::settings::{ConsumerSettings, GroupId, Topic};
 use telemetry::config::{parse_duration, tracing_from_env};
 use telemetry::resilience::{CircuitBreakerConfig, RetryConfig};
 
@@ -18,9 +18,9 @@ pub struct ProbeConfig {
     /// `PROBE_KAFKA_BOOTSTRAP`.
     pub bootstrap: String,
     /// `PROBE_TOPIC`.
-    pub topic: String,
+    pub topic: Topic,
     /// `PROBE_GROUP_ID`.
-    pub group_id: String,
+    pub group_id: GroupId,
     /// `PROBE_LOOKUP_URL`: the user-service stand-in's base URL.
     pub lookup_url: String,
     /// `PROBE_METRICS_PORT` (default 9091).
@@ -118,14 +118,23 @@ pub fn from_env<S: BuildHasher>(
             0
         }
     };
+    let topic = text("PROBE_TOPIC", "user-events")
+        .parse::<Topic>()
+        .map_err(|error| problems.push(format!("PROBE_TOPIC: {error}")));
+    let group_id = text("PROBE_GROUP_ID", "events-probe")
+        .parse::<GroupId>()
+        .map_err(|error| problems.push(format!("PROBE_GROUP_ID: {error}")));
     let tracing = tracing_from_env(env, &mut problems);
+    let (Ok(topic), Ok(group_id)) = (topic, group_id) else {
+        return Err(problems);
+    };
     if !problems.is_empty() {
         return Err(problems);
     }
     Ok(ProbeConfig {
         bootstrap,
-        topic: text("PROBE_TOPIC", "user-events"),
-        group_id: text("PROBE_GROUP_ID", "events-probe"),
+        topic,
+        group_id,
         lookup_url: lookup_url.trim_end_matches('/').to_owned(),
         metrics_port,
         service_name: text("PROBE_SERVICE_NAME", "events-probe"),
