@@ -9,4 +9,8 @@ ignore = [
   "RUSTSEC-2023-0071",
   # libsqlite3-sys 0.30 (C SQLite CVE): the same, via sqlx-sqlite.
   "RUSTSEC-2026-0459",
+  # url 2.5.8 (stack overflow in Url::origin on nested blob: URLs): nothing here
+  # calls origin(); the fix, 2.5.9 (2026-11-20), is too young for the sandbox's
+  # mirror (gluon bin/check-locks). Take it from 2026-12-04 and drop this.
+  "RUSTSEC-2026-0592",
 ]

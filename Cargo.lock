@@ -1727,10 +1727,13 @@ name = "service-basics"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "time",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
