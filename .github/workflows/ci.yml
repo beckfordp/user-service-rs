@@ -39,6 +39,16 @@ jobs:
           sparse-checkout: registry
           sparse-checkout-cone-mode: false
 
+      # The Redis-backed tests (gluon-rs service-testing) start a throwaway
+      # redis-server from the PATH; the runner image has none.
+      - name: redis-server on the PATH
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends redis-server
+
+      # The crates depend on gluon-rs by path (../../lib/gluon-rs in gluon's layout);
+      # recreate that layout beside the checkout.
+      - name: gluon-rs where the path dependencies expect it
+        run: git clone --depth 1 https://github.com/beckfordp/gluon-rs.git "$GITHUB_WORKSPACE/../../lib/gluon-rs"
+
       # The same script the sandbox runs, so the two can't drift.
       - name: CI checks
         env:
