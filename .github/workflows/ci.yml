@@ -10,7 +10,8 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    # 24.04: the PostgreSQL 16 binaries below (ubuntu-latest, 26.04, has none).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
