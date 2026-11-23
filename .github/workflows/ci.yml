@@ -40,6 +40,12 @@ jobs:
           sparse-checkout: registry
           sparse-checkout-cone-mode: false
 
+      # The Postgres-backed tests start a throwaway cluster from the local
+      # PostgreSQL 16 binaries (no Docker in the sandbox); the runner image
+      # has them, off the PATH.
+      - name: PostgreSQL 16 binaries on the PATH
+        run: echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+
       # The Redis-backed tests (gluon-rs service-testing) start a throwaway
       # redis-server from the PATH; the runner image has none.
       - name: redis-server on the PATH
